@@ -89,7 +89,10 @@ do_build() {
   log "Generando cliente Prisma…"
   npx prisma generate
   log "Aplicando esquema a la base de datos…"
-  npx prisma db push --accept-data-loss
+  # Sin --accept-data-loss (C3): una migración destructiva se rechaza con error
+  # claro en lugar de perder filas en silencio. En primera instalación no hay
+  # datos que perder; en updates el fallo honesto protege la BD existente.
+  npx prisma db push
   log "Compilando la aplicación (next build, salida standalone)…"
   npm run build
   log "Compilación completada."

@@ -9,10 +9,9 @@
 //      Cross-site JS cannot attach custom headers without a successful CORS
 //      preflight (which the app never grants) → classic CSRF is dead.
 //   2. If an `Origin` header is present (browsers always send it on POSTs),
-//      its host must match the `Host` header — blocks proxied cross-origin.
-//      Requests whose Host is loopback are also accepted (reverse proxies
-//      legitimately rewrite Host to 127.0.0.1; those carry no rebinding risk
-//      because rule 1 already stopped cross-site callers).
+//      its host must match the `Host` header, be loopback, or be explicitly
+//      trusted via T82_TRUSTED_HOSTS (reverse proxies rewrite Host to
+//      127.0.0.1) — any other origin is rejected.
 //   3. Origin-less (non-browser) calls are only accepted when the `Host`
 //      header is loopback or explicitly trusted via T82_TRUSTED_HOSTS
 //      (comma-separated hostnames) — kills DNS rebinding, which always
@@ -72,10 +71,16 @@ export function guardMutation(request: Request): Response | null {
   const origin = request.headers.get('origin')
 
   if (origin) {
-    // 2) same-origin enforcement (proxies may rewrite Host to loopback — allowed)
+    // 2) Origin validation. Accepted only when the Origin host matches the
+    //    request Host, is loopback, or is explicitly trusted
+    //    (T82_TRUSTED_HOSTS — reverse proxies legitimately rewrite Host to
+    //    loopback). Anything else (attacker.site) is rejected even when the
+    //    request Host is loopback: rule 1 already stops real browsers, this
+    //    closes the synthetic non-browser gap too.
     try {
       const originHost = new URL(origin).hostname.toLowerCase()
-      if (originHost !== hostName && !isLoopback(hostName)) {
+      const trusted = isLoopback(originHost) || trustedHosts().includes(originHost)
+      if (originHost !== hostName && !trusted) {
         return NextResponse.json(
           { error: 'mutating request rejected: cross-origin Origin header' },
           { status: 403 },

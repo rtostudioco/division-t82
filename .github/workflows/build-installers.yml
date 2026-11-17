@@ -59,10 +59,20 @@ jobs:
       - name: Compilar instalador Windows
         shell: pwsh
         run: ./deploy/windows/build-installer.ps1
+      - name: SHA256 del instalador Windows (C7: checksums completos)
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem dist/vulncheck-t82-*-win64-setup.exe | Select-Object -First 1
+          if (-not $exe) { Write-Error "no setup.exe found in dist/"; exit 1 }
+          $hash = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash.ToLower()
+          "$hash  $($exe.Name)" | Out-File -FilePath dist/SHA256SUMS.part-win -Encoding ascii -NoNewline
+          Write-Output "win64: $hash  $($exe.Name)"
       - uses: actions/upload-artifact@v4
         with:
           name: installers-windows
-          path: dist/vulncheck-t82-*-win64-setup.exe
+          path: |
+            dist/vulncheck-t82-*-win64-setup.exe
+            dist/SHA256SUMS.part-win
           if-no-files-found: error
 
   macos:
@@ -88,12 +98,22 @@ jobs:
         run: ./deploy/macos/build-app.sh
       - name: Compilar .pkg de sistema
         run: ./deploy/macos/build-pkg.sh
+      - name: SHA256 de los instaladores macOS
+        run: |
+          cd dist
+          for f in vulncheck-t82-*-macos-*.dmg vulncheck-t82-*-macos-*.pkg; do
+            [ -f "$f" ] || continue
+            sha256sum "$f" > "$(basename "$f").sha256.part"
+          done
+          cat *.sha256.part > SHA256SUMS.part-macos 2>/dev/null || true
+          rm -f *.sha256.part
       - uses: actions/upload-artifact@v4
         with:
           name: installers-macos
           path: |
             dist/vulncheck-t82-*-macos-*.dmg
             dist/vulncheck-t82-*-macos-*.pkg
+            dist/SHA256SUMS.part-macos
           if-no-files-found: error
 
   release:
@@ -108,6 +128,21 @@ jobs:
         with:
           merge-multiple: true
           path: release
+      - name: Combinar SHA256SUMS (Linux + Windows + macOS)
+        run: |
+          cd release
+          # C7: el SHA256SUMS final debe cubrir TODOS los artefactos publicados.
+          for part in SHA256SUMS.part-win SHA256SUMS.part-macos; do
+            if [ -f "$part" ]; then
+              # asegurar newline final antes de concatenar
+              [ -n "$(tail -c 1 SHA256SUMS 2>/dev/null)" ] && echo "" >> SHA256SUMS
+              cat "$part" >> SHA256SUMS
+              echo "" >> SHA256SUMS
+              rm -f "$part"
+            fi
+          done
+          echo "--- SHA256SUMS final ---"
+          cat SHA256SUMS
       - name: Crear el release con los instaladores
         uses: softprops/action-gh-release@v2
         with:

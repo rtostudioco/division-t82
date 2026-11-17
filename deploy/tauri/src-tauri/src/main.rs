@@ -54,13 +54,15 @@ fn main() {
                 data_dir.to_string_lossy().replace('\\', "/")
             );
 
-            // db push idempotente antes del arranque (CLI Prisma empaquetada)
+            // db push idempotente antes del arranque (CLI Prisma empaquetada).
+            // C3: el resultado NO se ignora — un fallo de esquema aborta el
+            // arranque con un error honesto en lugar de abrir una webview rota.
             let prisma_cli = app
                 .path()
                 .resource_dir()
                 .map_err(|e| format!("recursos: {e}"))?
                 .join("tools/prisma-cli/node_modules/prisma/build/index.js");
-            let _ = std::process::Command::new(
+            let push_status = std::process::Command::new(
                 app.path().resource_dir()?.join("binaries").join(if cfg!(windows) {
                     "node-runtime.exe"
                 } else {
@@ -73,7 +75,16 @@ fn main() {
             .arg("--skip-generate")
             .env("DATABASE_URL", &db_url)
             .current_dir(&app_dir)
-            .status();
+            .status()
+            .map_err(|e| format!("no se pudo ejecutar prisma db push: {e}"))?;
+            if !push_status.success() {
+                return Err(
+                    "prisma db push falló: el esquema de la base de datos no se pudo aplicar \
+                     (una migración destructiva se rechaza por seguridad; los datos NO se han \
+                     modificado). Revisa el log o reinstala con la BD vacía."
+                        .into(),
+                );
+            }
 
             let sidecar = app
                 .shell()

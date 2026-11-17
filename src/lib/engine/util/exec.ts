@@ -23,6 +23,12 @@ const ALLOWLIST: AllowEntry[] = [
   { argv0: 'lsblk', prefix: ['-P', '-o', 'NAME,SIZE,TYPE,MOUNTPOINT'], timeoutMs: 4000, maxBuffer: 64 * 1024 },
   { argv0: 'ps', prefix: ['axo', 'pid,user,comm'], timeoutMs: 4000, maxBuffer: 256 * 1024 },
   { argv0: 'uname', prefix: ['-r'], timeoutMs: 2000, maxBuffer: 4 * 1024 },
+  // Firewall runtime-state probes (read-only). As non-root these usually fail
+  // with a permission error — the honest result is then `null` (unknown) and
+  // the firewall rule falls back to config-file inference.
+  { argv0: 'ufw', prefix: ['status'], timeoutMs: 4000, maxBuffer: 64 * 1024 },
+  { argv0: 'nft', prefix: ['list', 'ruleset'], timeoutMs: 4000, maxBuffer: 256 * 1024 },
+  { argv0: 'iptables', prefix: ['-S'], timeoutMs: 4000, maxBuffer: 256 * 1024 },
 ]
 
 export type ExecResult =

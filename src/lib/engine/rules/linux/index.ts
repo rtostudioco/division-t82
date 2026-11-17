@@ -1416,8 +1416,19 @@ export const LINUX_RULES: SecurityControl[] = [
       const evidence = [
         frag('file-read', '/etc/ufw/ufw.conf', { firewall: fw }, fw.ufwEnabled === true ? 'HIGH' : 'MEDIUM'),
       ]
+      // Runtime probes are the strongest evidence (real kernel state); config
+      // files only infer intent. Order: ufw runtime → nft runtime → config.
+      if (fw.ufwRuntime === true) {
+        return { status: 'PASS', detail: 'ufw status reports "active" (runtime probe)', evidence }
+      }
+      if (fw.ufwRuntime === false) {
+        return { status: 'FAIL', detail: 'ufw status reports inactive (runtime probe) — host firewall not enforcing', evidence }
+      }
+      if (fw.nftRulesetLoaded === true) {
+        return { status: 'PASS', detail: 'nftables ruleset loaded in the kernel (runtime probe)', evidence }
+      }
       if (fw.ufwInstalled && fw.ufwEnabled === true) {
-        return { status: 'PASS', detail: 'ufw installed and ENABLED=yes in /etc/ufw/ufw.conf', evidence }
+        return { status: 'PASS', detail: 'ufw installed and ENABLED=yes in /etc/ufw/ufw.conf (runtime probe unavailable — verify "ufw status")', evidence }
       }
       if (fw.ufwInstalled && fw.ufwEnabled === false) {
         return { status: 'FAIL', detail: 'ufw installed but ENABLED=no — host firewall inactive', evidence }
@@ -1586,10 +1597,19 @@ export const LINUX_RULES: SecurityControl[] = [
     evidenceSource: 'stat(): /usr/bin/clamscan /usr/sbin/clamd',
     evaluate(bag): ControlEvaluation {
       const evidence = [
-        frag('execFile:stat', 'stat /usr/bin/clamscan | /usr/sbin/clamd', { clamavInstalled: bag.clamavInstalled, gccInstalled: bag.gccInstalled }, 'HIGH'),
+        frag('execFile:stat', 'stat /usr/bin/clamscan | /usr/sbin/clamd', { clamavInstalled: bag.clamavInstalled, clamavDaemonRunning: bag.clamavDaemonRunning, gccInstalled: bag.gccInstalled }, 'HIGH'),
       ]
       if (bag.clamavInstalled) {
-        return { status: 'PASS', detail: 'clamav detected (clamscan/clamd binary present)', evidence }
+        return {
+          status: 'PASS',
+          detail:
+            bag.clamavDaemonRunning === true
+              ? 'clamav detected (clamscan/clamd binary present) and clamav-daemon is running — on-access scanning active'
+              : bag.clamavDaemonRunning === false
+                ? 'clamav detected (clamscan/clamd binary present); clamav-daemon NOT running — on-demand scans only, consider enabling clamav-daemon'
+                : 'clamav detected (clamscan/clamd binary present); daemon state unknown (systemd offline or unavailable)',
+          evidence,
+        }
       }
       return {
         status: 'FAIL',
@@ -1727,13 +1747,21 @@ export const LINUX_RULES: SecurityControl[] = [
     platforms: ['linux'],
     distros: ['debian', 'ubuntu'],
     implemented: true,
-    evidenceSource: '/etc/crypttab + cryptsetup',
+    evidenceSource: '/etc/crypttab + cryptsetup + lsblk TYPE=crypt (runtime)',
     evaluate(bag): ControlEvaluation {
       const evidence = [
-        frag('file-read', '/etc/crypttab', { crypttabExists: bag.crypttabExists, cryptsetupInstalled: bag.cryptsetupInstalled }, 'HIGH'),
+        frag('file-read', '/etc/crypttab', { crypttabExists: bag.crypttabExists, cryptsetupInstalled: bag.cryptsetupInstalled, luksVolumes: bag.luksVolumes }, 'HIGH'),
       ]
+      // Runtime evidence first: lsblk TYPE=crypt proves volumes are mapped NOW.
+      if (bag.luksVolumes && bag.luksVolumes.length > 0) {
+        return {
+          status: 'PASS',
+          detail: `LUKS volumes mapped at runtime (lsblk): ${bag.luksVolumes.slice(0, 6).join(', ')}${bag.luksVolumes.length > 6 ? ' …' : ''}`,
+          evidence,
+        }
+      }
       if (bag.crypttabExists) {
-        return { status: 'PASS', detail: '/etc/crypttab present — encrypted volumes configured at boot', evidence }
+        return { status: 'PASS', detail: '/etc/crypttab present — encrypted volumes configured at boot (not visible as mapped in this session)', evidence }
       }
       if (bag.cryptsetupInstalled) {
         return {

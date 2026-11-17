@@ -132,8 +132,8 @@ async function collectSshdMerged(): Promise<{
         .filter((n) => n.length > 0 && n !== '.' && n !== '..' && n.endsWith('.conf'))
         .sort()
       for (const file of files) {
-        // NOTE: the util path-allowlist only admits dot-prefixed entries under
-        // sshd_config.d; other file names are rejected by the boundary and skipped.
+        // Drop-ins carry conventional names (10-custom.conf, 50-cloud-init.conf);
+        // the path boundary admits any single-segment name (fixed 0.3.0).
         const res = await safeRead(`/etc/ssh/sshd_config.d/${file}`)
         if (!res.ok) continue
         const opts = parseSshdFirstWins(res.content)
@@ -273,6 +273,9 @@ export async function collectLinuxEvidence(platform: PlatformInfo): Promise<Linu
         .split('\n')
         .map((s) => s.trim())
         .filter((n) => n.length > 0 && n !== '.' && n !== '..')
+        // sudoers(5) ignores drop-ins containing '.' or ending in '~'/'#' —
+        // listing only files sudoers actually reads keeps the evidence honest.
+        .filter((n) => /^[A-Za-z0-9_-]+$/.test(n))
     }
   } catch {
     // sudoers.d listing is optional evidence; leave [] on failure
@@ -339,7 +342,8 @@ export async function collectLinuxEvidence(platform: PlatformInfo): Promise<Linu
     bag.ipForwardError = errorMessage(e)
   }
 
-  // ── firewall tooling (binaries via allowlisted stat; configs via safeRead) ─
+  // ── firewall tooling (binaries via allowlisted stat; configs via safeRead;
+  //    runtime state probed read-only, honest null when the probe needs root) ─
   try {
     bag.firewall.ufwInstalled = await binaryPresent('/usr/sbin/ufw')
     bag.firewall.nftablesInstalled = await binaryPresent('/usr/sbin/nft')
@@ -354,6 +358,14 @@ export async function collectLinuxEvidence(platform: PlatformInfo): Promise<Linu
     }
     bag.firewall.nftablesConfExists = (await safeRead('/etc/nftables.conf')).ok
 
+    // Runtime probes (real enforcement state, preferred over config inference):
+    const ufwStatus = await safeExec('ufw', ['status'])
+    bag.firewall.ufwRuntime = ufwStatus.ok ? /status:\s*active/i.test(ufwStatus.stdout) : null
+    const nftRuleset = await safeExec('nft', ['list', 'ruleset'])
+    // An empty ruleset prints nothing → safeExec reports EMPTY_OUTPUT; a non-empty
+    // stdout means loaded rules exist in the kernel.
+    bag.firewall.nftRulesetLoaded = nftRuleset.ok ? nftRuleset.stdout.trim().length > 0 : null
+
     bag.firewall.tool = bag.firewall.ufwInstalled
       ? 'ufw'
       : bag.firewall.nftablesInstalled
@@ -362,13 +374,16 @@ export async function collectLinuxEvidence(platform: PlatformInfo): Promise<Linu
           ? 'iptables'
           : null
     bag.firewall.active =
-      bag.firewall.ufwEnabled === true
+      bag.firewall.ufwRuntime ??
+      (bag.firewall.nftRulesetLoaded === true
         ? true
-        : bag.firewall.nftablesConfExists
-          ? null
-          : bag.firewall.tool === null
+        : bag.firewall.ufwEnabled === true
+          ? true
+          : bag.firewall.ufwEnabled === false
             ? false
-            : null
+            : bag.firewall.tool === null
+              ? false
+              : null)
   } catch {
     // firewall block: defaults from emptyBag stand on failure
   }
@@ -551,9 +566,16 @@ export async function collectLinuxEvidence(platform: PlatformInfo): Promise<Linu
   try {
     bag.clamavInstalled =
       (await binaryPresent('/usr/bin/clamscan')) || (await binaryPresent('/usr/sbin/clamd'))
+    // Real enforcement state: clamav-daemon among the running systemd services
+    // (collected earlier; null when systemd is offline, e.g. containers).
+    bag.clamavDaemonRunning =
+      bag.runningServices === null
+        ? null
+        : bag.runningServices.some((s) => s.startsWith('clamav-daemon'))
     bag.gccInstalled = await binaryPresent('/usr/bin/gcc')
   } catch {
     bag.clamavInstalled = false
+    bag.clamavDaemonRunning = null
     bag.gccInstalled = false
   }
 
@@ -575,6 +597,7 @@ export async function collectLinuxEvidence(platform: PlatformInfo): Promise<Linu
         return m ? m[1] : ''
       }
       const devices: NonNullable<LinuxEvidenceBag['swapDevices']> = []
+      const luks: string[] = []
       for (const line of res.stdout.split('\n')) {
         const trimmed = line.trim()
         if (!trimmed) continue
@@ -586,6 +609,8 @@ export async function collectLinuxEvidence(platform: PlatformInfo): Promise<Linu
           type: parseField(trimmed, 'TYPE'),
           mountpoint: parseField(trimmed, 'MOUNTPOINT'),
         }
+        // Runtime data-at-rest evidence: lsblk reports mapped LUKS containers as TYPE=crypt.
+        if (entry.type === 'crypt') luks.push(entry.name)
         const isSwap =
           entry.type === 'swap' ||
           entry.mountpoint === '[SWAP]' ||
@@ -593,11 +618,14 @@ export async function collectLinuxEvidence(platform: PlatformInfo): Promise<Linu
         if (isSwap) devices.push(entry)
       }
       bag.swapDevices = devices
+      bag.luksVolumes = luks
     } else {
       bag.swapDevices = null
+      bag.luksVolumes = null
     }
   } catch {
     bag.swapDevices = null
+    bag.luksVolumes = null
   }
 
   // ── sensitive file permissions (stat — readable without root) ─────────────

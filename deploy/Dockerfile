@@ -2,10 +2,14 @@
 # Imagen contenedora multi-stage (linux/amd64 · linux/arm64).
 #
 #   docker build -t vulncheck-t82 -f deploy/Dockerfile .
-#   docker run -d --name vulncheck -p 3000:3000 \
+#   docker run -d --name vulncheck -p 127.0.0.1:3000:3000 \
 #     -v vulncheck-data:/data \
 #     -e DATABASE_URL="file:/data/vulncheck.db" \
 #     vulncheck-t82
+#
+# El contenedor enlaza a 0.0.0.0 INTERNAMENTE (requisito de Docker para
+# publicar el puerto); la postura local-first se aplica en la publicación:
+# usa -p 127.0.0.1:3000:3000 (docker-compose.yml ya lo hace así).
 #
 # La plataforma audita EL HOST donde corre: dentro de un contenedor lee /proc
 # y /etc del propio contenedor. Para auditar el host real, montalo de solo

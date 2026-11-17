@@ -3,7 +3,8 @@
 // z-ai-web-dev-sdk runs HERE (backend) — never imported from client code.
 // Honesty rules: the model only receives the aggregated summary below (scores,
 // counts, control statuses, top KEV/CVE matches) — never raw evidence, hashes
-// or secrets. If no scan exists, the assistant says so instead of inventing.
+// or secrets. Privacy (D1): hostname and username never leave the machine.
+// If no scan exists, the assistant says so instead of inventing.
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import ZAI from 'z-ai-web-dev-sdk'
@@ -25,22 +26,21 @@ const BodySchema = z.object({
   conversationId: z.string().min(1).max(64).optional(),
 })
 
-// ─── Rate limiting (in-memory, per process) ─────────────────────────────────
+// ─── Rate limiting (in-memory, per process) ───────────────────────────────
+// D2: the key is FIXED ('local'), not X-Forwarded-For — that header is fully
+// client-controlled, so a per-header bucket let an attacker rotate keys and
+// bypass the limit. The service is loopback-only local-first: one honest
+// global bucket per process is the truthful policy.
 
 const RATE_LIMIT = 12
 const WINDOW_MS = 60_000
-const hits = new Map<string, number[]>()
+const hits: number[] = []
 
-function rateLimited(ip: string): boolean {
+function rateLimited(): boolean {
   const now = Date.now()
-  const arr = (hits.get(ip) ?? []).filter((t) => now - t < WINDOW_MS)
-  if (arr.length >= RATE_LIMIT) {
-    hits.set(ip, arr)
-    return true
-  }
-  arr.push(now)
-  hits.set(ip, arr)
-  if (hits.size > 512) hits.clear()
+  while (hits.length > 0 && now - hits[0] >= WINDOW_MS) hits.shift()
+  if (hits.length >= RATE_LIMIT) return true
+  hits.push(now)
   return false
 }
 
@@ -110,9 +110,11 @@ async function buildContext(lang: 'es' | 'en'): Promise<{ text: string; grounded
 
   const lines: string[] = []
   lines.push(`CONTEXT — latest completed assessment (${scan.startedAt.toISOString().slice(0, 16).replace('T', ' ')} UTC):`)
+  // D1 minimization: hostname and username NEVER leave the machine — they are
+  // pure identifiers with zero advisory value. Only generic platform shape
+  // (OS family/version, kernel, arch) is sent so hardening advice fits the OS.
   lines.push(
-    `host: ${scan.host.hostname} | ${scan.host.os} ${scan.host.osVersion} | kernel ${scan.host.kernel} | ` +
-      `${scan.host.arch} | user ${scan.host.user}${scan.host.isRoot ? ' (root)' : ''}`,
+    `host platform: ${scan.host.os} ${scan.host.osVersion} | kernel ${scan.host.kernel} | ${scan.host.arch}`,
   )
   lines.push(
     `score: ${scan.score != null ? `${scan.score.toFixed(1)}/100` : 'n/a'} | ` +
@@ -227,8 +229,7 @@ async function callLLM(sys: string, messages: ChatMessage[]): Promise<Completion
 export async function POST(request: Request) {
   const denied = guardMutation(request)
   if (denied) return denied
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local'
-  if (rateLimited(ip)) {
+  if (rateLimited()) {
     return NextResponse.json(
       { error: 'rate limited — try again in a minute' },
       { status: 429 },

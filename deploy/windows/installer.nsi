@@ -118,6 +118,12 @@ Section "DIVISION T82" SecMain
   DetailPrint "Aplicando el esquema de base de datos (prisma db push)…"
   nsExec::ExecToLog '"$INSTDIR\node\node.exe" "$INSTDIR\tools\db-push.js" "$DATA_DIR"'
   Pop $0
+  ${If} $0 != 0
+    ; C3: un fallo de esquema aborta la instalación con error honesto —
+    ; nunca se continúa con una BD sin aplicar (los datos no se han tocado).
+    MessageBox MB_ICONSTOP "prisma db push falló (código $0). La instalación se detiene; la base de datos NO ha sido modificada. Revisa el log de instalación."
+    Abort
+  ${EndIf}
 
   ; service.xml para WinSW (valores absolutos escritos en tiempo de instalación)
   FileOpen $4 "$INSTDIR\vulncheck-t82-service.xml" w

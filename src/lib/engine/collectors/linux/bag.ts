@@ -67,8 +67,10 @@ export interface LinuxEvidenceBag {
   firewall: {
     ufwInstalled: boolean
     ufwEnabled: boolean | null // from /etc/ufw/ufw.conf ENABLED
+    ufwRuntime: boolean | null // `ufw status` probe (null → probe not possible without root)
     nftablesInstalled: boolean
     nftablesConfExists: boolean
+    nftRulesetLoaded: boolean | null // `nft list ruleset` probe (null → probe not possible)
     iptablesInstalled: boolean
     tool: 'ufw' | 'nftables' | 'iptables' | null
     active: boolean | null
@@ -113,11 +115,15 @@ export interface LinuxEvidenceBag {
   apparmorLsmActive: boolean | null
   apparmorProfilesDirExists: boolean
   clamavInstalled: boolean
+  /** clamav-daemon detected among running systemd services (null → systemd offline). */
+  clamavDaemonRunning: boolean | null
   gccInstalled: boolean
 
   // encryption
   crypttabExists: boolean
   cryptsetupInstalled: boolean
+  /** Block devices with TYPE=crypt from lsblk (runtime LUKS evidence; null → lsblk unavailable). */
+  luksVolumes: string[] | null
 
   /** Installed package inventory (name+version, capped) — powers vulnerability matching. */
   packages: { name: string; version: string }[] | null
@@ -157,8 +163,10 @@ export function emptyBag(platform: PlatformInfo): LinuxEvidenceBag {
     firewall: {
       ufwInstalled: false,
       ufwEnabled: null,
+      ufwRuntime: null,
       nftablesInstalled: false,
       nftablesConfExists: false,
+      nftRulesetLoaded: null,
       iptablesInstalled: false,
       tool: null,
       active: null,
@@ -191,9 +199,11 @@ export function emptyBag(platform: PlatformInfo): LinuxEvidenceBag {
     apparmorLsmActive: null,
     apparmorProfilesDirExists: false,
     clamavInstalled: false,
+    clamavDaemonRunning: null,
     gccInstalled: false,
     crypttabExists: false,
     cryptsetupInstalled: false,
+    luksVolumes: null,
     packages: null,
     swapDevices: null,
     filePerms: [],

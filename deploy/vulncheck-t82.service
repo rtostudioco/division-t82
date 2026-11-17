@@ -13,7 +13,7 @@ Environment=PORT=3000
 # local-first: la web solo escucha en loopback — no accesible desde la red.
 Environment=HOSTNAME=127.0.0.1
 Environment=DATABASE_URL=file:/var/lib/vulncheck-t82/vulncheck.db
-ExecStartPre=/usr/bin/prisma db push --skip-generate --accept-data-loss
+ExecStartPre=/usr/bin/prisma db push --skip-generate
 ExecStart=/usr/bin/node server.js
 Restart=on-failure
 RestartSec=5

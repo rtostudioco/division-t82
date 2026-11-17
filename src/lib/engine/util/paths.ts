@@ -54,7 +54,19 @@ function resolveAllowed(p: string): string | null {
   for (const dir of ['/etc/ssh/sshd_config.d', '/etc/sudoers.d', '/etc/apparmor.d']) {
     if (p.startsWith(dir + '/')) {
       const rel = p.slice(dir.length + 1)
-      if (rel.length > 0 && !rel.includes('/') && !rel.includes('..') && rel.startsWith('.')) return p
+      // Drop-ins are named by convention WITHOUT a leading dot
+      // (sshd_config.d/10-custom.conf, apparmor.d/usr.bin.firefox, sudoers.d/admin);
+      // requiring a dot-prefix silently skipped real evidence (fixed 0.3.0).
+      // The boundary stays closed: single segment, no traversal, no suffix games.
+      if (
+        rel.length > 0 &&
+        !rel.includes('/') &&
+        !rel.includes('..') &&
+        !rel.endsWith('~') &&
+        !rel.endsWith('#')
+      ) {
+        return p
+      }
     }
   }
   return null
@@ -84,7 +96,9 @@ export async function safeStat(p: string): Promise<
   | { ok: true; mode: string; owner: string; group: string; path: string }
   | { ok: false; error: string }
 > {
-  const allowed = resolveAllowed(p) !== null || p.startsWith('/etc/')
+  // B2 hardening: stat obeys the SAME allowlist as reads — a bare
+  // `p.startsWith('/etc/')` accepted metadata probing of ANY /etc file.
+  const allowed = resolveAllowed(p) !== null
   if (!allowed) return { ok: false, error: `path not allowed for stat: ${p}` }
   try {
     const st = await stat(p)

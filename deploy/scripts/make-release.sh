@@ -58,9 +58,15 @@ set -e
 cd "$(dirname "$0")"
 export DATABASE_URL="${DATABASE_URL:-file:$(pwd)/data/vulncheck.db}"
 export PORT="${PORT:-3000}"
-export HOSTNAME="${HOSTNAME:-0.0.0.0}"
+export HOSTNAME="${HOSTNAME:-127.0.0.1}"
 export NODE_ENV=production
 mkdir -p "$(dirname "${DATABASE_URL#file:}")"
+# Sin --accept-data-loss ni silencio (C3): un fallo de esquema detiene el
+# arranque con error visible; los datos nunca se pierden en silencio.
+npx --yes prisma@6 db push --skip-generate || {
+  echo "ERROR: prisma db push falló — los datos NO se han modificado; revisa el esquema."
+  exit 1
+}
 if [ ! -f .next/standalone/server.js ]; then
   echo "Falta el build de producción. Ejecuta antes:  ./install.sh install"
   exit 1
