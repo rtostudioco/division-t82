@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <a href="#-instalación-en-30-segundos"><img alt="version" src="https://img.shields.io/badge/versi%C3%B3n-0.2.1-22c55e?style=for-the-badge&labelColor=0c1810"></a>
+  <a href="#-instalación-en-30-segundos"><img alt="version" src="https://img.shields.io/badge/versi%C3%B3n-0.3.0-22c55e?style=for-the-badge&labelColor=0c1810"></a>
   <img alt="node" src="https://img.shields.io/badge/Node.js-20%2B-339933?style=for-the-badge&labelColor=0c1810&logo=node.js&logoColor=white">
   <img alt="plataformas" src="https://img.shields.io/badge/Linux%20·%20Windows%20·%20macOS-instaladores-4ade80?style=for-the-badge&labelColor=0c1810">
   <img alt="db" src="https://img.shields.io/badge/SQLite-100%25%20local-F7B32B?style=for-the-badge&labelColor=0c1810&logo=sqlite&logoColor=white">

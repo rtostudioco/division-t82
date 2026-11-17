@@ -3,7 +3,7 @@
 Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) ·
 Versionado: SemVer (`MAJOR.MINOR.PATCH`).
 
-## [Sin publicar]
+## [0.3.0] — 2026-11-17
 
 ### Security · P0/P1 — segunda tanda de hardening (motor, instaladores, IA)
 - **Bind loopback en los `start.sh` generados** — `make-release.sh` y
@@ -133,4 +133,5 @@ Versionado: SemVer (`MAJOR.MINOR.PATCH`).
 ## [0.2.0] — base histórica del proyecto
 - Primera versión estructurada de la plataforma (motor, UI base, modelo Prisma).
 
+[0.3.0]: ../../releases/tag/v0.3.0
 [0.2.1]: ../../releases/tag/v0.2.1
