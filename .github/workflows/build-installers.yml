@@ -59,7 +59,7 @@ jobs:
       - name: Compilar instalador Windows
         shell: pwsh
         run: ./deploy/windows/build-installer.ps1
-      - name: SHA256 del instalador Windows (C7: checksums completos)
+      - name: "SHA256 del instalador Windows (C7: checksums completos)"
         shell: pwsh
         run: |
           $exe = Get-ChildItem dist/vulncheck-t82-*-win64-setup.exe | Select-Object -First 1
