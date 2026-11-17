@@ -1,0 +1,22 @@
+#!/bin/sh
+# postinst del .deb vulncheck-t82: registra el servicio y aplica el esquema.
+set -e
+
+# Usuario de servicio sin shell (creado si no existe).
+if ! id t82 >/dev/null 2>&1; then
+  adduser --system --group --no-create-home --home /opt/vulncheck-t82 t82 || true
+fi
+
+chown -R t82:t82 /opt/vulncheck-t82
+mkdir -p /var/lib/vulncheck-t82
+chown -R t82:t82 /var/lib/vulncheck-t82
+
+# Instala y habilita el servicio systemd.
+if command -v systemctl >/dev/null 2>&1; then
+  cp /opt/vulncheck-t82/vulncheck-t82.service /etc/systemd/system/
+  systemctl daemon-reload
+  systemctl enable vulncheck-t82 >/dev/null 2>&1 || true
+  echo "vulncheck-t82 instalado."
+  echo "Arranca el servicio con:  sudo systemctl start vulncheck-t82"
+  echo "Luego abre:               http://localhost:3000"
+fi

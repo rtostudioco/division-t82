@@ -1,0 +1,11 @@
+{
+  "$schema": "https://schema.tauri.app/capabilities/2",
+  "identifier": "default",
+  "description": "Permisos mínimos: la UI vive en http://127.0.0.1 (servidor local); solo se necesita el sidecar.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "shell:default",
+    "shell:allow-spawn"
+  ]
+}

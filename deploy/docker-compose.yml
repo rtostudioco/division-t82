@@ -1,0 +1,35 @@
+# DIVISION T82 — docker-compose para despliegue rápido.
+#
+#   docker compose -f deploy/docker-compose.yml up -d
+#
+# La web queda en http://<host>:3000 con datos persistentes en /data.
+
+services:
+  vulncheck:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: vulncheck-t82:latest
+    container_name: vulncheck-t82
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: file:/data/vulncheck.db
+      NODE_ENV: production
+    volumes:
+      - vulncheck-data:/data
+    # — Opcional: auditar el HOST real en lugar del contenedor —
+    # Descomenta los siguientes montajes de solo lectura; el motor T82 lee
+    # /etc y /proc de la raíz del contenedor, así que con estos binds el
+    # inventario y los controles se evalúan sobre el host:
+    #   /etc:/host-etc:ro  /proc:/host-proc:ro
+    # (requiere adaptar los collectors; el perfil actual audita el contenedor)
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/engine/status >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+
+volumes:
+  vulncheck-data:

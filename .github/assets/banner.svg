@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300" role="img" aria-label="DIVISION T82 · plataforma local-first de auditoría de postura de seguridad · Creado por Ramón Taboada Olivella — RTO Studio">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#081009"/>
+      <stop offset="0.55" stop-color="#0c1810"/>
+      <stop offset="1" stop-color="#050a07"/>
+    </linearGradient>
+    <linearGradient id="scanline" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#22c55e" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#22c55e" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#22c55e" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="sweep" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#22c55e" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#22c55e" stop-opacity="0.8"/>
+      <stop offset="1" stop-color="#22c55e" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.42" r="0.6">
+      <stop offset="0" stop-color="#22c55e" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#22c55e" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#22c55e" stroke-opacity="0.07" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="300" fill="url(#bg)"/>
+  <rect width="1200" height="300" fill="url(#grid)"/>
+  <rect width="1200" height="300" fill="url(#glow)"/>
+
+  <!-- línea de escaneo animada (radar) -->
+  <rect y="0" width="260" height="300" fill="url(#scanline)">
+    <animate attributeName="x" values="-260;1200" dur="5.5s" repeatCount="indefinite"/>
+  </rect>
+
+  <!-- borde inferior con barrido de luz -->
+  <rect x="0" y="292" width="1200" height="2" fill="#16351f"/>
+  <rect x="-220" y="292" width="220" height="2" fill="url(#sweep)">
+    <animate attributeName="x" values="-220;1200" dur="3.2s" repeatCount="indefinite"/>
+  </rect>
+
+  <!-- marca T82 (escudo) -->
+  <g transform="translate(84,84)">
+    <path d="M0 14 L30 0 L60 14 L60 46 Q60 66 30 82 Q0 66 0 46 Z"
+          fill="none" stroke="#22c55e" stroke-width="2.5" stroke-opacity="0.9"/>
+    <path d="M12 40 L26 54 L48 26" fill="none" stroke="#22c55e" stroke-width="3.5"
+          stroke-linecap="round" stroke-linejoin="round">
+      <animate attributeName="stroke-dasharray" values="0 60;60 0" dur="3.6s" repeatCount="indefinite"/>
+    </path>
+  </g>
+
+  <!-- titular -->
+  <text x="180" y="94" font-family="Consolas, 'Courier New', monospace" font-size="14"
+        letter-spacing="4" fill="#4ade80">PLATAFORMA LOCAL-FIRST DE AUDITORÍA DE SEGURIDAD</text>
+  <text x="178" y="158" font-family="Consolas, 'Courier New', monospace" font-size="52"
+        font-weight="bold" letter-spacing="2" fill="#f2f7f4">DIVISION <tspan fill="#4ade80">T82</tspan></text>
+  <rect x="560" y="122" width="14" height="42" fill="#4ade80">
+    <animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.5;0.5;1" dur="1.2s" repeatCount="indefinite"/>
+  </rect>
+  <text x="180" y="192" font-family="Consolas, 'Courier New', monospace" font-size="16"
+        fill="#8aa693">Solo lectura · evidencia trazable · puntuación explicable · cero telemetría</text>
+
+  <!-- chips de datos -->
+  <g font-family="Consolas, 'Courier New', monospace" font-size="13">
+    <rect x="180" y="216" width="96" height="30" rx="15" fill="none" stroke="#22c55e" stroke-opacity="0.55"/>
+    <text x="199" y="236" fill="#4ade80">v0.2.1</text>
+
+    <rect x="290" y="216" width="186" height="30" rx="15" fill="none" stroke="#22c55e" stroke-opacity="0.35"/>
+    <text x="304" y="236" fill="#9fb8aa">20 controles VC-LNX</text>
+
+    <rect x="490" y="216" width="128" height="30" rx="15" fill="none" stroke="#22c55e" stroke-opacity="0.35"/>
+    <text x="504" y="236" fill="#9fb8aa">SQLite local</text>
+
+    <rect x="632" y="216" width="152" height="30" rx="15" fill="none" stroke="#22c55e" stroke-opacity="0.35"/>
+    <text x="646" y="236" fill="#9fb8aa">MCP + IA interna</text>
+
+    <rect x="798" y="216" width="118" height="30" rx="15" fill="none" stroke="#22c55e" stroke-opacity="0.35"/>
+    <text x="812" y="236" fill="#9fb8aa">ES / EN</text>
+  </g>
+
+  <!-- estado live -->
+  <g font-family="Consolas, 'Courier New', monospace" font-size="13">
+    <circle cx="1120" cy="52" r="5" fill="#22c55e">
+      <animate attributeName="opacity" values="1;0.25;1" dur="1.8s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="1120" cy="52" r="5" fill="none" stroke="#22c55e">
+      <animate attributeName="r" values="5;14" dur="1.8s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.6;0" dur="1.8s" repeatCount="indefinite"/>
+    </circle>
+    <text x="1090" y="78" fill="#4ade80">LOCAL · LIVE</text>
+  </g>
+
+  <!-- firma -->
+  <text x="180" y="276" font-family="Consolas, 'Courier New', monospace" font-size="13"
+        fill="#5f7a6b">Creado por Ramón Taboada Olivella — RTO Studio</text>
+</svg>

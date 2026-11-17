@@ -1,0 +1,256 @@
+// DIVISION T82
+// Local-first security posture platform. SQLite persistence. All timestamps UTC.
+// Evidence traceability: every ControlResult links to the Evidence that produced it.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Host & scans ───────────────────────────────────────────────────────────
+
+model Host {
+  id           String    @id @default(cuid())
+  hostname     String
+  os           String
+  osVersion    String
+  distro       String?
+  distroFamily String? // debian | ubuntu | windows | macos
+  kernel       String
+  arch         String
+  user         String
+  isRoot       Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  scans        ScanJob[]
+}
+
+model ScanJob {
+  id             String   @id @default(cuid())
+  hostId         String
+  host           Host     @relation(fields: [hostId], references: [id])
+  platform       String // linux | windows | macos
+  engineVersion  String
+  status         String // running | completed | failed
+  scopeJson      String // categories requested
+  score          Float?
+  coverage       Float?
+  countsJson     String? // {pass,fail,warning,notApplicable,notAssessed,error}
+  severityJson   String? // {critical,high,medium,low,info}
+  inventoryJson  String? // sanitized system inventory snapshot
+  durationMs     Int?
+  startedAt      DateTime @default(now())
+  finishedAt     DateTime?
+  results        ControlResult[]
+  findings       Finding[]
+  evidences      Evidence[]
+  reports        RemediationPreview[]
+  vulnMatches    VulnerabilityMatch[]
+
+  @@index([startedAt])
+}
+
+// ─── Assessment results ─────────────────────────────────────────────────────
+
+model ControlResult {
+  id                 String   @id @default(cuid())
+  scanId             String
+  scan               ScanJob  @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  controlId          String // VC-LNX-0101
+  controlVersion     String
+  controlName        String // JSON {en,es}
+  category           String
+  severity           String
+  status             String // PASS|FAIL|WARNING|NOT_APPLICABLE|NOT_ASSESSED|ERROR
+  reason             String? // required for NOT_ASSESSED / NOT_APPLICABLE
+  detail             String? // technical detail from evaluation
+  explanation        String? // JSON {en,es}
+  limitations        String? // JSON {en,es} optional
+  evidenceId         String?
+  privilegesRequired String?
+  durationMs         Int?
+  createdAt          DateTime @default(now())
+
+  @@index([scanId])
+  @@index([controlId])
+  @@index([status])
+}
+
+model Evidence {
+  id                 String   @id @default(cuid())
+  scanId             String
+  scan               ScanJob  @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  controlId          String
+  schemaVersion      String   @default("vc.evidence/v1")
+  method             String // file-read | proc-read | execFile(ss) | os-api
+  source             String // /etc/passwd, /proc/sys/kernel/randomize_va_space
+  payloadJson        String // redacted evidence payload
+  confidence         String   @default("HIGH") // HIGH|MEDIUM|LOW
+  privilegesRequired String?
+  redacted           Boolean  @default(true)
+  collectedAt        DateTime @default(now())
+
+  @@index([scanId])
+  @@index([controlId])
+}
+
+model Finding {
+  id               String   @id @default(cuid())
+  scanId           String
+  scan             ScanJob  @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  controlId        String
+  controlName      String // JSON {en,es}
+  category         String
+  severity         String
+  status           String // FAIL | WARNING
+  detail           String?
+  recommendationId String? // links to RemediationPreview
+  createdAt        DateTime @default(now())
+
+  @@index([scanId])
+  @@index([severity])
+}
+
+// ─── Hardening Studio (advisory-only) ───────────────────────────────────────
+
+model RemediationPreview {
+  id             String   @id @default(cuid())
+  controlId      String
+  scanId         String?
+  scan           ScanJob? @relation(fields: [scanId], references: [id])
+  payloadJson    String // full §8.7 structure (steps, risks, rollback, verify)
+  advisoryOnly   Boolean  @default(true)
+  createdAt      DateTime @default(now())
+}
+
+// ─── Knowledge Center ───────────────────────────────────────────────────────
+
+model KnowledgeArticle {
+  id                 String   @id @default(cuid())
+  slug               String   @unique
+  titleJson          String // {en,es}
+  summaryJson        String // {en,es}
+  level              String // BEGINNER | INTERMEDIATE | ADVANCED
+  category           String
+  platformsJson      String // ["linux",...]
+  mitreJson          String? // [{id,name}]
+  cveJson            String?
+  cweJson            String?
+  sectionsJson       String // ordered sections (21-field structure)
+  referencesJson     String // official sources
+  relatedControlsJson String // ["VC-LNX-0101",...]
+  language           String   @default("es")
+  reviewedAt         DateTime
+  updatedAt          DateTime @updatedAt
+
+  @@index([category])
+  @@index([level])
+}
+
+// ─── Vulnerability intelligence (OSV + NVD ingestion; exact-version matching) ─
+
+model VulnerabilityRecord {
+  id           String   @id @default(cuid())
+  cveId        String   @unique
+  title        String
+  cvssScore    Float?
+  cvssVector   String?
+  cwesJson     String?
+  kev          Boolean  @default(false)
+  source       String   @default("local") // osv | nvd | local
+  confidence   String   @default("UNVERIFIED") // CONFIRMED | POSSIBLE_MATCH | NOT_AFFECTED | INSUFFICIENT_INFO
+  description  String?
+  referencesJson String?
+  publishedAt  DateTime?
+  modifiedAt   DateTime?
+  fetchedAt    DateTime?
+  matches      VulnerabilityMatch[]
+
+  @@index([kev])
+  @@index([cvssScore])
+}
+
+// Exact-version matches produced by OSV against a scan's package inventory.
+// A row exists ONLY when the OSV matcher confirmed the installed version falls
+// inside the advisory's affected ranges (never name-only guesses).
+model VulnerabilityMatch {
+  id             String   @id @default(cuid())
+  cveId          String
+  record         VulnerabilityRecord @relation(fields: [cveId], references: [cveId])
+  scanId         String
+  scan           ScanJob  @relation(fields: [scanId], references: [id], onDelete: Cascade)
+  packageName    String
+  packageVersion String
+  ecosystem      String
+  confidence     String   @default("CONFIRMED")
+  severity       String   @default("UNKNOWN") // CRITICAL|HIGH|MEDIUM|LOW|UNKNOWN (from CVSS)
+  matchedAt      DateTime @default(now())
+
+  @@unique([cveId, scanId, packageName])
+  @@index([scanId])
+}
+
+// ─── Internal AI assistant (conversation history) ────────────────────────────
+// One row per conversation; messages kept as a JSON array (bounded client-side).
+// Aggregated posture data only — the assistant never stores raw evidence.
+
+model AssistantConversation {
+  id           String   @id @default(cuid())
+  title        String // first user message (truncated)
+  messagesJson String
+  grounded     Boolean  @default(false)
+  score        Float? // posture score of the scan consulted at conversation start
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([updatedAt])
+}
+
+// ─── Remediation tasks (advisory tracking checklist) ─────────────────────────
+// Hardening Studio proposals become trackable tasks. Still advisory-only:
+// marking a task DONE records the operator's closure, it changes nothing in the
+// system. Dedupe rule: at most one OPEN task per control.
+
+model RemediationTask {
+  id          String    @id @default(cuid())
+  controlId   String
+  scanId      String?
+  title       String
+  payloadJson String? // optional snapshot of the proposal (priority, category)
+  status      String    @default("OPEN") // OPEN | IN_PROGRESS | DONE | DISMISSED
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  closedAt    DateTime?
+
+  @@index([status])
+  @@index([controlId])
+}
+
+// ─── Settings & audit ───────────────────────────────────────────────────────
+
+model ApplicationSetting {
+  key       String   @id
+  value     String // JSON
+  updatedAt DateTime @updatedAt
+}
+
+model AuditHistory {
+  id        String   @id @default(cuid())
+  actor     String   @default("local-operator")
+  action    String // scan.run | scan.reset | settings.update | report.export
+  target    String?
+  detail    String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model SourceReference {
+  id   String @id @default(cuid())
+  kind String // official | vendor | standard
+  label String
+  url  String
+}

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "DIVISION T82",
+  "version": "0.2.1",
+  "identifier": "studio.rto.vulncheck-t82",
+  "build": {
+    "beforeBuildCommand": "",
+    "frontendDist": "../payload/tauri-static"
+  },
+  "app": {
+    "windows": [],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "category": "DeveloperTool",
+    "copyright": "By: Ramón Taboada Olivella - RTO Studio",
+    "shortDescription": "Auditoría local-first de postura de seguridad",
+    "longDescription": "DIVISION T82: evaluación read-only con evidencia trazable, puntuación explicable e inteligencia OSV/NVD/CISA-KEV. Los datos permanecen en tu máquina (SQLite local).",
+    "targets": ["nsis", "msi", "dmg", "deb", "appimage", "rpm"],
+    "externalBin": ["binaries/node-runtime"],
+    "resources": {
+      "../payload/vulncheck-t82/app/**/*": "app/",
+      "../payload/vulncheck-t82/prisma/**/*": "prisma/",
+      "../payload/vulncheck-t82/tools/**/*": "tools/"
+    },
+    "icon": ["icons/icon.png", "icons/icon.ico", "icons/icon.icns"],
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      }
+    }
+  }
+}

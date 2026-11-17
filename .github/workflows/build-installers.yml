@@ -1,0 +1,116 @@
+# DIVISION T82 · Matriz CI de instaladores nativos
+#
+# Disparo:  push de tag v* (p.ej. git tag v0.2.1 && git push --tags)
+#           o manual: Actions → build-installers → Run workflow
+#
+# Produce y publica (Release de GitHub cuando es un tag):
+#   Linux:   vulncheck-t82-<v>-source-<arch>.tar.gz · vulncheck-t82_<v>_all.deb
+#   Windows: vulncheck-t82-<v>-win64-setup.exe            (NSIS + servicio WinSW)
+#   macOS:   vulncheck-t82-<v>-macos-<arch>.dmg           (app portable)
+#            vulncheck-t82-<v>-macos-<arch>.pkg           (instalación de sistema)
+#
+# El Centro de descargas de la app (Informes → Centro de descargas) muestra
+# automáticamente cualquier artefacto presente en dist/.
+name: build-installers
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      include_macos:
+        description: 'Compilar instaladores macOS (.dmg/.pkg) — solo si la cuenta ya tiene acceso a runners macOS'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    name: Linux · tar.gz + .deb
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Generar instaladores fuente (make-release.sh)
+        run: ./deploy/scripts/make-release.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installers-linux
+          path: |
+            dist/*.tar.gz
+            dist/*.deb
+            dist/SHA256SUMS
+          if-no-files-found: error
+
+  windows:
+    name: Windows · setup.exe (NSIS)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Instalar NSIS 3
+        run: choco install nsis -y --no-progress
+      - name: Compilar instalador Windows
+        shell: pwsh
+        run: ./deploy/windows/build-installer.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installers-windows
+          path: dist/vulncheck-t82-*-win64-setup.exe
+          if-no-files-found: error
+
+  macos:
+    # Los runners macOS están restringidos en cuentas nuevas de GitHub (requieren
+    # spending limit / método de pago). Si el job entra igual, se cancela al
+    # instante y arrastra la conclusión de TODA la run: GitHub marca el commit
+    # con un aspa roja aunque Windows y Linux hayan ido perfectos.
+    #
+    # Activar cuando la cuenta gane acceso a macOS:
+    #   a) Settings → Secrets and variables → Actions → Variables → MACOS_ENABLED=true
+    #      → los pushes de tag vuelven a compilar .dmg/.pkg y el release los incluye
+    #   b) Actions → build-installers → Run workflow → marcar include_macos
+    #   c) desde una Mac real: ./deploy/macos/build-app.sh && ./deploy/macos/build-pkg.sh
+    if: ${{ vars.MACOS_ENABLED == 'true' || (github.event_name == 'workflow_dispatch' && inputs.include_macos == true) }}
+    name: macOS · .dmg + .pkg
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Compilar .app + .dmg
+        run: ./deploy/macos/build-app.sh
+      - name: Compilar .pkg de sistema
+        run: ./deploy/macos/build-pkg.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installers-macos
+          path: |
+            dist/vulncheck-t82-*-macos-*.dmg
+            dist/vulncheck-t82-*-macos-*.pkg
+          if-no-files-found: error
+
+  release:
+    name: Publicar release
+    if: >-
+      startsWith(github.ref, 'refs/tags/v') &&
+      needs.linux.result == 'success' && needs.windows.result == 'success'
+    needs: [linux, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+          path: release
+      - name: Crear el release con los instaladores
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          generate_release_notes: true
+          fail_on_unmatched_files: true

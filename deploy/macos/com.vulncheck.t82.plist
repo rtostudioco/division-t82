@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- DIVISION T82 · LaunchAgent de usuario (instalación .app) -->
+<!-- Copiar a ~/Library/LaunchAgents/ y ajustar la ruta si la .app no está en /Applications -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>studio.rto.vulncheck-t82</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Applications/DIVISION T82.app/Contents/MacOS/vulncheck-t82</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PORT</key><string>3000</string>
+  </dict>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key>
+  <dict>
+    <key>SuccessfulExit</key><false/>
+  </dict>
+  <key>ProcessType</key><string>Background</string>
+</dict>
+</plist>

@@ -1,0 +1,28 @@
+[Unit]
+Description=DIVISION T82 (postura de seguridad local-first)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# ⚠ Ajusta estas dos rutas a tu instalación real:
+User=t82
+WorkingDirectory=/opt/vulncheck-t82
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=HOSTNAME=0.0.0.0
+Environment=DATABASE_URL=file:/var/lib/vulncheck-t82/vulncheck.db
+ExecStartPre=/usr/bin/prisma db push --skip-generate --accept-data-loss
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
+RestartSec=5
+# Endurecimiento básico del servicio:
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/vulncheck-t82
+PrivateTmp=true
+ProtectHome=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target

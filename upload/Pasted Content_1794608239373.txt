@@ -1,0 +1,1385 @@
+# MASTER PROMPT — VULNCHECK UNIVERSAL
+## Cross-Platform Security Engineering Platform
+### Windows · Linux · macOS | Local-First | Security-First | AI-Ready
+
+---
+
+# 1. TU IDENTIDAD Y RESPONSABILIDAD
+
+Actúa simultáneamente como:
+
+- Chief Technology Officer (CTO).
+- Principal Software Architect.
+- Senior Cybersecurity Engineer.
+- Cross-Platform Systems Engineer.
+- Security Researcher.
+- Python Backend Engineer.
+- Rust / Tauri Engineer.
+- React / TypeScript Full-Stack Engineer.
+- Database Architect.
+- Senior UX/UI Product Designer.
+- QA Automation Engineer.
+- Application Security Engineer.
+
+Tu misión es diseñar y construir un producto de ingeniería de seguridad real, funcional, modular, profesional y multiplataforma.
+
+No quiero una landing page que simule una aplicación, ni un dashboard estático con información inventada.
+
+Quiero una aplicación de escritorio que pueda inspeccionar la postura de seguridad de un equipo, recopilar evidencias autorizadas, evaluar configuraciones, identificar riesgos, consultar información de vulnerabilidades, explicar los hallazgos y recomendar correcciones seguras.
+
+Debes priorizar arquitectura, seguridad, rendimiento, mantenibilidad, accesibilidad y experiencia de usuario.
+
+---
+
+# 2. IDENTIDAD DEL PRODUCTO
+
+Nombre de trabajo: DIVISION T82
+
+Descripción:
+
+Cross-Platform Security Engineering & Posture Assessment Platform.
+
+Objetivo:
+
+Desarrollar una aplicación de escritorio capaz de evaluar y explicar la postura de seguridad de:
+
+- Windows 11.
+- Windows 10 cuando sea compatible.
+- Linux Ubuntu LTS.
+- Linux Debian estable.
+- macOS en arquitecturas Apple Silicon e Intel, sujeto a compatibilidad técnica y pruebas.
+
+No afirmes que una plataforma es compatible hasta que sus comprobaciones funcionales hayan sido probadas.
+
+La aplicación debe permitir que un usuario principiante o intermedio comprenda la seguridad de su propio equipo sin necesitar conocimientos avanzados de ciberseguridad.
+
+El producto debe ser útil tanto para aprendizaje individual como para auditorías técnicas locales y pequeñas infraestructuras empresariales.
+
+## Filosofía del producto
+
+1. Local-first.
+2. Privacy-first.
+3. Security-by-design.
+4. Read-only by default.
+5. Modular architecture.
+6. Explainable findings.
+7. Evidence-based assessment.
+8. Cross-platform adapters.
+9. Human-controlled remediation.
+10. Extensible through documented APIs.
+
+No debe convertirse en un antivirus, EDR, SIEM, herramienta de explotación o plataforma de pentesting indiscriminado.
+
+Su especialización es Security Engineering.
+
+---
+
+# 3. REPOSITORIO EXISTENTE: REGLA FUNDAMENTAL
+
+Repositorio de referencia:
+
+https://github.com/rtostudioco/vulncheck-local
+
+El proyecto existente constituye la base de la evolución.
+
+ANTES DE PROGRAMAR:
+
+1. Inspecciona la estructura completa del repositorio.
+2. Identifica el lenguaje y las tecnologías existentes.
+3. Revisa los módulos, reglas de auditoría y sus identificadores.
+4. Examina las pruebas.
+5. Revisa las funciones de informes.
+6. Examina el motor de puntuación.
+7. Identifica funcionalidades implementadas, parciales y pendientes.
+8. Detecta dependencias, limitaciones y deuda técnica.
+9. Ejecuta las pruebas y builds existentes cuando el entorno lo permita.
+10. Registra cualquier problema previo que pueda afectar la evolución.
+
+No inventes funcionalidades existentes.
+
+No elimines reglas, identificadores, informes ni componentes funcionales sin justificarlo técnicamente.
+
+No cambies arbitrariamente el nombre del paquete, los identificadores de producto, las versiones o la estructura del proyecto.
+
+Conserva los elementos válidos y construye sobre ellos.
+
+Genera inicialmente:
+
+- docs/BASELINE_AUDIT.md
+- docs/ARCHITECTURE_PROPOSAL.md
+- docs/IMPLEMENTATION_ROADMAP.md
+- docs/PLATFORM_COMPATIBILITY_MATRIX.md
+
+Si no tienes acceso real al repositorio, solicita acceso o utiliza los archivos proporcionados. No simules haberlo inspeccionado.
+
+---
+
+# 4. ARQUITECTURA TECNOLÓGICA
+
+Quiero una arquitectura modular, mantenible y multiplataforma.
+
+## Frontend
+
+- React 19.x o versión estable compatible más reciente.
+- TypeScript en modo estricto.
+- Vite.
+- Tailwind CSS.
+- shadcn/ui.
+- Librería de gráficos mantenida y compatible.
+- Motion para animaciones donde aporte valor, sin perjudicar rendimiento ni accesibilidad.
+
+## Desktop Runtime
+
+- Tauri 2.
+- Rust para el puente de escritorio, controles de permisos e integración nativa.
+- Configuración granular de capabilities.
+- Comunicación segura entre frontend y backend.
+
+## Security Engine
+
+- Python 3.14 si todas las dependencias críticas son compatibles; en caso contrario, selecciona una versión estable compatible y documenta la decisión.
+- Arquitectura limpia y modular.
+- FastAPI para API local.
+- Pydantic para validación de contratos.
+- SQLite para persistencia local.
+- Pytest para pruebas.
+- Ruff para calidad y análisis estático.
+
+## Comunicación
+
+El motor Python se distribuirá como proceso auxiliar empaquetado junto con la aplicación Tauri.
+
+La comunicación será exclusivamente local.
+
+Requisitos:
+
+- Binding a 127.0.0.1.
+- Puerto efímero.
+- Token interno aleatorio por sesión.
+- Validación de origen.
+- Control de ciclo de vida del proceso.
+- Límites de tiempo y tamaño de peticiones.
+- No utilizar 0.0.0.0.
+- No exponer el servidor local a redes externas.
+- No introducir endpoints administrativos sin autorización.
+
+El frontend nunca debe ejecutar directamente comandos del sistema operativo.
+
+## Base de datos
+
+SQLite.
+
+Tablas y entidades iniciales:
+
+- hosts
+- system_inventory
+- security_controls
+- control_results
+- findings
+- evidence
+- vulnerability_records
+- knowledge_articles
+- source_references
+- remediation_previews
+- audit_history
+- scan_jobs
+- application_settings
+
+Implementa migraciones, índices, integridad referencial y backups controlados.
+
+No almacenes contraseñas de usuario ni secretos innecesarios.
+
+---
+
+# 5. DISEÑO DE ARQUITECTURA MODULAR
+
+Utiliza arquitectura hexagonal o Clean Architecture, con separación entre dominio, casos de uso, adaptadores y persistencia.
+
+Estructura conceptual:
+
+vulncheck-universal/
+
+  apps/
+    desktop/
+      src/
+        components/
+        layouts/
+        pages/
+        features/
+        hooks/
+        services/
+        stores/
+        styles/
+      src-tauri/
+        src/
+        capabilities/
+        permissions/
+        sidecars/
+
+  engine/
+    vulncheck/
+      domain/
+        entities/
+        value_objects/
+        enums/
+        contracts/
+
+      application/
+        use_cases/
+        services/
+
+      ports/
+        platform_adapter.py
+        inventory_provider.py
+        vulnerability_provider.py
+        knowledge_provider.py
+
+      adapters/
+        platforms/
+          windows/
+          linux/
+          macos/
+
+        integrations/
+          nvd/
+          cisa_kev/
+          osquery_optional/
+
+        storage/
+          sqlite/
+
+      security/
+        permission_manager/
+        command_allowlist/
+        evidence_redaction/
+        process_isolation/
+
+      rules/
+        common/
+        windows/
+        linux/
+        macos/
+
+      knowledge/
+        ingestion/
+        indexing/
+        search/
+        references/
+
+      api/
+      cli/
+
+  knowledge_base/
+    articles/
+    official_sources/
+    code_examples/
+    laboratory_scenarios/
+    schemas/
+
+  tests/
+    unit/
+    integration/
+    contracts/
+    security/
+    platform/
+    fixtures/
+
+  docs/
+    architecture/
+    security/
+    platforms/
+    decisions/
+    user_guides/
+    development/
+
+Adapta esta estructura a la realidad del repositorio y evita crear carpetas vacías sin propósito.
+
+---
+
+# 6. UNIVERSAL SECURITY ENGINE
+
+Este será el núcleo del producto.
+
+El motor debe separar:
+
+A. Reglas comunes.
+B. Reglas específicas por plataforma.
+C. Adaptadores de recopilación.
+D. Normalización de evidencias.
+E. Evaluación de resultados.
+F. Puntuación explicable.
+G. Informes.
+
+## Contrato de reglas
+
+Cada control debe tener:
+
+- ID único.
+- Nombre.
+- Descripción.
+- Categoría.
+- Severidad.
+- Plataforma aplicable.
+- Versiones o distribuciones compatibles.
+- Condición que evalúa.
+- Fuente de evidencia.
+- Estado del resultado.
+- Explicación técnica.
+- Referencias documentales.
+- Recomendación de corrección.
+- Método de verificación.
+
+Las reglas deben estar versionadas y validadas mediante un esquema estricto.
+
+No permitas que un archivo YAML o JSON descargado pueda ejecutar código arbitrario.
+
+## Estados obligatorios
+
+Conserva los estados existentes cuando corresponda:
+
+- PASS
+- FAIL
+- WARNING
+- NOT_APPLICABLE
+- NOT_ASSESSED
+- ERROR
+
+Una comprobación sin permisos suficientes debe ser NOT_ASSESSED o ERROR, nunca PASS.
+
+Una función que no existe en un sistema operativo no debe ser evaluada como un fallo.
+
+Separa el nivel de cobertura del nivel de seguridad.
+
+No inventes un score de 100 cuando una parte importante del sistema no pudo evaluarse.
+
+## Security Evidence Schema
+
+Define un contrato común versionado para normalizar los resultados.
+
+Debe permitir registrar:
+
+- Record ID.
+- Host ID.
+- Sistema operativo.
+- Versión del sistema.
+- Distribución.
+- Control ID.
+- Estado.
+- Severidad.
+- Evidencia.
+- Método de recopilación.
+- Fecha UTC.
+- Nivel de confianza.
+- Privilegios requeridos.
+- Referencia documental.
+- Limitaciones.
+- Recomendación.
+
+Cada hallazgo debe conservar trazabilidad hacia su evidencia original.
+
+---
+
+# 7. ADAPTADORES NATIVOS POR SISTEMA OPERATIVO
+
+Los adaptadores deben compartir una interfaz común, pero utilizar fuentes de datos adecuadas para cada plataforma.
+
+## 7.1 WINDOWS ADAPTER
+
+Objetivo inicial:
+
+Windows 11 y Windows 10 compatible.
+
+Áreas:
+
+- Usuarios y grupos locales.
+- Privilegios.
+- UAC.
+- Windows Defender.
+- Windows Defender Firewall.
+- Estado de BitLocker.
+- TPM.
+- Secure Boot.
+- Servicios activos.
+- Procesos.
+- Puertos y conexiones.
+- Actualizaciones.
+- Configuración de seguridad.
+- Aplicaciones instaladas.
+- Políticas locales cuando sea posible.
+
+Fuentes técnicas candidatas:
+
+- Windows Management Instrumentation.
+- CIM.
+- APIs documentadas de Windows.
+- Registro de Windows, en lectura.
+- Cmdlets documentados de PowerShell.
+- Interfaces nativas autorizadas.
+
+Ejemplos de comprobaciones de referencia:
+
+- Get-MpComputerStatus
+- Get-NetFirewallProfile
+- Estado de BitLocker.
+- Estado de UAC.
+- Estado del arranque seguro.
+
+No dependas exclusivamente de comandos PowerShell si existe una API nativa más apropiada.
+
+No modifiques configuraciones durante una auditoría.
+
+## 7.2 LINUX ADAPTER
+
+Prioridad inicial:
+
+- Ubuntu LTS.
+- Debian estable.
+
+Diseña el adaptador para facilitar la incorporación futura de Fedora y distribuciones adicionales.
+
+Áreas:
+
+- Usuarios y grupos.
+- sudo y privilegios.
+- Configuración de SSH.
+- Firewall.
+- UFW.
+- nftables.
+- Servicios systemd.
+- Procesos.
+- Puertos abiertos.
+- Paquetes instalados.
+- Estado de actualizaciones.
+- AppArmor.
+- SELinux, cuando corresponda.
+- Cifrado LUKS.
+- Permisos de archivos sensibles.
+- Configuración de red.
+
+Fuentes de datos:
+
+- /etc/
+- /proc/
+- /sys/
+- systemd.
+- journalctl.
+- Gestor de paquetes.
+- APIs o herramientas nativas documentadas.
+
+No asumas que todas las distribuciones tienen las mismas herramientas, rutas, servicios o políticas.
+
+Detecta la distribución y la versión antes de aplicar reglas específicas.
+
+## 7.3 macOS ADAPTER
+
+Objetivo:
+
+macOS compatible con arquitecturas Apple Silicon e Intel, una vez validadas.
+
+Áreas:
+
+- FileVault.
+- Gatekeeper.
+- System Integrity Protection.
+- Firewall.
+- Usuarios administradores.
+- Actualizaciones.
+- Servicios launchd.
+- Aplicaciones instaladas.
+- Configuración de red.
+- Permisos relevantes.
+- Estado de protecciones del sistema.
+
+Utiliza herramientas y APIs oficiales de Apple.
+
+Respeta TCC, SIP y las restricciones de privacidad del sistema.
+
+No intentes evadir permisos.
+
+La integración con Endpoint Security debe considerarse una fase avanzada e independiente, con los requisitos de autorización, entitlements y distribución documentados.
+
+## Regla esencial
+
+Una misma función puede tener diferentes métodos de recopilación en cada sistema.
+
+El resultado final debe seguir el contrato común, no obligar a las plataformas a comportarse de manera idéntica.
+
+---
+
+# 8. MÓDULOS UNIVERSALES DE LA APLICACIÓN
+
+Construye los módulos en este orden conceptual.
+
+## MODULE 01 — SECURITY OVERVIEW
+
+Dashboard principal.
+
+Mostrar:
+
+- Estado general de seguridad.
+- Cobertura de auditoría.
+- Riesgos críticos.
+- Riesgos altos.
+- Hallazgos pendientes.
+- Última evaluación.
+- Evolución histórica.
+- Sistema operativo detectado.
+- Recomendaciones prioritarias.
+
+No utilices datos falsos en el dashboard real.
+
+Si se utilizan datos de demostración, deben estar identificados como DEMO.
+
+## MODULE 02 — ASSET & SYSTEM INVENTORY
+
+Inventario local de:
+
+- Sistema operativo.
+- Hardware.
+- CPU.
+- RAM.
+- Almacenamiento.
+- Software instalado.
+- Usuarios.
+- Servicios.
+- Interfaces de red.
+- Información relevante para seguridad.
+
+Protege la información identificable y evita recopilar datos innecesarios.
+
+## MODULE 03 — SECURITY POSTURE ASSESSMENT
+
+Motor de auditoría.
+
+Categorías:
+
+- Identity & Access.
+- System Configuration.
+- Network Security.
+- Firewall.
+- Endpoint Protection.
+- Encryption.
+- Patch Management.
+- Services & Processes.
+- Data Protection.
+- Application Security.
+- Operating System Security.
+
+Cada categoría debe contener controles comprobables, con estados y evidencias.
+
+## MODULE 04 — NETWORK & ATTACK SURFACE
+
+Permitir conocer:
+
+- Puertos locales en escucha.
+- Interfaces.
+- Servicios expuestos.
+- Firewall.
+- Configuración de red.
+- Protocolos inseguros detectables mediante evidencia local.
+
+No realices escaneo indiscriminado de redes externas.
+
+Las comprobaciones deben enfocarse en el equipo autorizado.
+
+## MODULE 05 — VULNERABILITY INTELLIGENCE
+
+Integrar:
+
+- CVE.
+- CVSS.
+- CWE.
+- CISA KEV.
+- NIST NVD.
+- Referencias del fabricante.
+- Estado de parches cuando sea verificable.
+
+Relacionar inventario de software y versiones con vulnerabilidades conocidas.
+
+Distinguir entre:
+
+- Vulnerabilidad confirmada.
+- Posible coincidencia.
+- Versión no afectada.
+- Información insuficiente.
+
+No afirmar que un equipo es vulnerable basándose solamente en coincidencias aproximadas de nombres.
+
+Implementa caché, límites de consultas, actualización controlada y funcionamiento básico sin internet.
+
+## MODULE 06 — IDENTITY & ACCESS
+
+Analizar:
+
+- Usuarios.
+- Grupos.
+- Privilegios administrativos.
+- Cuentas deshabilitadas.
+- Políticas de acceso.
+- Configuración de autenticación.
+- Servicios de acceso remoto.
+
+Explica por qué una configuración aumenta el riesgo.
+
+## MODULE 07 — HARDENING STUDIO
+
+Esta será una de las funciones diferenciadoras.
+
+Cuando se identifique un problema, generar una propuesta de solución:
+
+1. Descripción del problema.
+2. Causa probable.
+3. Riesgo.
+4. Prioridad.
+5. Configuración actual.
+6. Configuración recomendada.
+7. Comandos o pasos manuales.
+8. Archivos afectados.
+9. Posibles efectos secundarios.
+10. Requisitos previos.
+11. Procedimiento de rollback.
+12. Método para verificar la corrección.
+
+Incluir vista previa de cambios.
+
+NO ejecutar modificaciones automáticamente en la primera versión.
+
+No modificar firewall, SSH, permisos, usuarios, servicios, registro, políticas, cifrado ni actualizaciones.
+
+La ejecución futura, si se desarrolla, deberá ser un componente separado, explícitamente autorizado y con controles adicionales.
+
+## MODULE 08 — THREAT INTELLIGENCE
+
+Crear un módulo de contexto de amenazas.
+
+Funciones:
+
+- Consulta de CVE.
+- Indicadores de compromiso.
+- IP.
+- Dominios.
+- URLs.
+- Hashes.
+- Fuentes de inteligencia.
+- Contexto temporal.
+- Confianza.
+- Referencias.
+- Relaciones con riesgos encontrados localmente.
+
+La consulta de servicios externos debe ser opcional.
+
+Una coincidencia de inteligencia no equivale automáticamente a una infección o compromiso.
+
+## MODULE 09 — SECURITY KNOWLEDGE CENTER
+
+ESTE MÓDULO ES MUY IMPORTANTE.
+
+No quiero un apartado de documentación compuesto por enlaces genéricos.
+
+Quiero una biblioteca de aprendizaje e investigación que explique los problemas de seguridad que la aplicación detecta.
+
+Debe estar relacionada directamente con los controles, vulnerabilidades y recomendaciones de los demás módulos.
+
+### Objetivo
+
+Que una persona pueda seleccionar un riesgo y aprender:
+
+- ¿Qué es?
+- ¿Por qué ocurre?
+- ¿Cuál es su causa técnica?
+- ¿Cómo puede producirse?
+- ¿Qué condiciones permiten que ocurra?
+- ¿Qué sistemas pueden verse afectados?
+- ¿Qué consecuencias tiene?
+- ¿Cómo se puede prevenir?
+- ¿Cómo se puede detectar?
+- ¿Cómo se puede investigar?
+- ¿Cómo se puede corregir?
+- ¿Cómo se comprueba que la solución funcionó?
+
+Explica el comportamiento del atacante a nivel técnico y educativo, sin convertir el módulo en una guía de intrusión contra sistemas reales.
+
+### Estructura de cada artículo
+
+Cada artículo debe incluir:
+
+1. Título.
+2. Resumen.
+3. Nivel de dificultad.
+4. Categoría.
+5. Sistemas operativos afectados.
+6. Descripción técnica.
+7. Causa raíz.
+8. Cómo ocurre el problema.
+9. Contexto de amenazas.
+10. Técnicas MITRE ATT&CK relacionadas.
+11. CVE/CWE, si corresponde.
+12. Indicadores o evidencias.
+13. Detección.
+14. Prevención.
+15. Mitigación.
+16. Procedimiento de verificación.
+17. Ejemplo de configuración segura.
+18. Ejemplo de código defensivo.
+19. Laboratorio seguro opcional.
+20. Referencias oficiales.
+21. Fecha de última revisión.
+
+### Fuentes documentales prioritarias
+
+Documentación primaria:
+
+- MITRE ATT&CK.
+- NIST.
+- CISA.
+- Microsoft Learn.
+- Ubuntu Security Documentation.
+- Debian Security Documentation.
+- Apple Platform Security.
+- OpenSSH Documentation.
+- OWASP Cheat Sheet Series.
+- CIS Benchmarks cuando los términos de uso permitan su incorporación.
+
+Referencias oficiales iniciales:
+
+https://attack.mitre.org/
+
+https://www.nist.gov/cybersecurity
+
+https://www.cisa.gov/
+
+https://learn.microsoft.com/en-us/windows/security/
+
+https://ubuntu.com/server/docs/how-to/security/
+
+https://www.debian.org/doc/manuals/securing-debian-manual/
+
+https://support.apple.com/guide/security/welcome/web
+
+https://developer.apple.com/documentation/security
+
+https://cheatsheetseries.owasp.org/
+
+### Referencias de código
+
+Quiero un apartado específico de Code References.
+
+Debe localizar ejemplos de código de fuentes confiables, incluyendo repositorios públicos de GitHub, cuando exista una licencia compatible.
+
+Mostrar:
+
+- Nombre del proyecto.
+- Repositorio.
+- Archivo o módulo relevante.
+- Lenguaje.
+- Licencia.
+- Versión.
+- Problema que resuelve.
+- Qué parte del código es relevante.
+- Por qué es útil.
+- Cómo adaptarlo de forma segura.
+- Referencia directa al archivo.
+
+No copies código de licencias desconocidas.
+
+No incorpores código sin revisión.
+
+Los ejemplos propios deben estar identificados como código de VulnCheck.
+
+### Laboratorios de aprendizaje
+
+Incorpora escenarios seguros, locales y reproducibles.
+
+Ejemplos:
+
+- Comprender una configuración SSH insegura.
+- Identificar una política de firewall incorrecta.
+- Reconocer un servicio innecesariamente expuesto.
+- Identificar una mala configuración de privilegios.
+- Comprender un control de cifrado.
+- Examinar una política de ejecución de aplicaciones.
+
+Los ejercicios deben operar sobre máquinas virtuales o entornos controlados. Los ejemplos de código deben priorizar análisis, validación, configuración segura, detección y pruebas defensivas.
+
+No ejecutar automáticamente código recuperado de documentación o repositorios.
+
+### Experiencia de usuario
+
+Tres niveles:
+
+BEGINNER:
+Explicación sencilla, analogías, pasos de aprendizaje y glosario.
+
+INTERMEDIATE:
+Configuración técnica, comandos de consulta, archivos, APIs, ejemplos y referencias.
+
+ADVANCED REFERENCE:
+Estándares, esquemas, documentación, referencias de código y enlaces primarios.
+
+El Knowledge Center debe ser consultable por:
+
+- Sistema operativo.
+- Categoría.
+- Nivel de dificultad.
+- MITRE ATT&CK.
+- CVE.
+- CWE.
+- Severidad.
+- Control de seguridad.
+- Palabra clave.
+
+## MODULE 10 — REPORTS & HISTORY
+
+Exportación:
+
+- PDF.
+- JSON.
+- CSV.
+
+Incluir:
+
+- Resumen ejecutivo.
+- Datos del sistema evaluado.
+- Fecha.
+- Alcance.
+- Cobertura.
+- Resultados.
+- Hallazgos.
+- Evidencias.
+- Recomendaciones.
+- Limitaciones.
+- Referencias.
+
+Mantén consistencia con el sistema de informes existente.
+
+## MODULE 11 — INTEGRATIONS
+
+Preparar arquitectura para conexiones futuras con:
+
+- Universal MCP.
+- Universal RAG.
+- Sentinel Desk.
+- Herramientas de auditoría externas.
+
+No desarrollar todas las integraciones antes de que el motor principal funcione.
+
+Definir contratos de API estables y versionados.
+
+---
+
+# 9. SEGURIDAD INTERNA DE LA APLICACIÓN
+
+Esta aplicación maneja información sensible del sistema operativo. Su propia seguridad debe ser prioritaria.
+
+Implementa:
+
+- Principio de mínimo privilegio.
+- Modo de lectura por defecto.
+- Separación entre frontend y colectores.
+- Validación de entradas.
+- Protección ante command injection.
+- Protección ante path traversal.
+- Protección ante SSRF en conectores.
+- Control de acceso a archivos.
+- Límites de recursos.
+- Protección de secretos.
+- Logs estructurados.
+- Redacción de información sensible.
+- Dependencias verificadas.
+- Actualizaciones seguras.
+- Trazabilidad de operaciones.
+
+Reglas estrictas:
+
+1. No utilizar shell=True.
+2. No ejecutar comandos proporcionados por el usuario.
+3. No ejecutar instrucciones obtenidas de un modelo de IA.
+4. No ejecutar código recuperado de documentos.
+5. Usar listas cerradas de comandos y argumentos permitidos.
+6. Definir timeouts y límites de salida.
+7. No requerir administrador/root para iniciar.
+8. Solicitar elevación solo cuando sea imprescindible.
+9. No evadir restricciones del sistema operativo.
+10. No enviar telemetría automáticamente a servidores externos.
+
+Si una comprobación requiere permisos especiales, explicar al usuario qué dato no pudo obtenerse y por qué.
+
+Preparar un threat model de la propia aplicación.
+
+---
+
+# 10. EXPERIENCIA UX/UI — NEO CYBER
+
+Quiero una interfaz visual de alta calidad.
+
+Dirección creativa:
+
+NEO CYBER / PREMIUM SECURITY ENGINEERING.
+
+No quiero una interfaz genérica de plantilla SaaS.
+
+Tampoco quiero un SOC exagerado con pantallas llenas de gráficas sin propósito.
+
+Debe transmitir:
+
+- Ingeniería.
+- Seguridad.
+- Precisión.
+- Confianza.
+- Modernidad.
+- Inteligencia.
+- Control.
+
+## PALETA NEO DARK
+
+Background: #0B1118
+
+Surface: #121C26
+
+Surface Elevated: #1B2935
+
+Border: #263744
+
+Text Primary: #F2F7FA
+
+Text Secondary: #A6B4C0
+
+Accent Green: #00DE69
+
+Accent Cyan: #30D5E8
+
+Blue: #4E91FF
+
+Warning: #E9A83A
+
+Critical: #FF5D73
+
+## PALETA NEO LIGHT
+
+Background: #F2F7F9
+
+Surface: #FFFFFF
+
+Surface Elevated: #E8F0F3
+
+Border: #D3E0E5
+
+Text Primary: #172630
+
+Text Secondary: #61737E
+
+Accent Green: #008C61
+
+Accent Cyan: #007F96
+
+Blue: #2563C8
+
+Warning: #966000
+
+Critical: #C72E48
+
+## SISTEMA VISUAL
+
+Implementar:
+
+- Dark Mode.
+- Neo Light Mode.
+- Selector de apariencia.
+- Sidebar compacta y expandible.
+- Navegación clara.
+- Paneles con jerarquía.
+- Tarjetas con indicadores útiles.
+- Gráficos de evolución.
+- Tablas técnicas.
+- Filtros avanzados.
+- Search global.
+- Notificaciones.
+- Skeleton loading.
+- Empty states.
+- Estados de error bien diseñados.
+- Animaciones de entrada y transición.
+- Microinteracciones en controles.
+- Tooltips explicativos.
+- Diseño responsive para distintas resoluciones de escritorio.
+- Idiomas: Ingles/Español
+
+Transiciones recomendadas: 160–240 ms.
+
+Utilizar animaciones de forma intencional. Evitar exceso de glow, blur, gradientes o partículas.
+
+Priorizar WCAG 2.2 AA, navegación con teclado, foco visible y respeto por prefers-reduced-motion.
+
+## ESTRUCTURA PRINCIPAL DE NAVEGACIÓN
+
+Sidebar:
+
+1. Overview.
+2. Assets.
+3. Security Assessment.
+4. Findings.
+5. Network Exposure.
+6. Vulnerability Intelligence.
+7. Hardening Studio.
+8. Threat Intelligence.
+9. Knowledge Center.
+10. Reports.
+11. Activity History.
+12. Integrations.
+13. Settings.
+
+Header:
+
+- Nombre de producto.
+- Sistema operativo detectado.
+- Estado del motor.
+- Búsqueda.
+- Notificaciones.
+- Perfil.
+- Selector de tema.
+
+---
+
+# 11. FLUJOS DE USUARIO
+
+Implementa el flujo:
+
+1. First Launch.
+2. Detección del sistema operativo.
+3. Comprobación de compatibilidad.
+4. Explicación de permisos.
+5. Selección del alcance de auditoría.
+6. Inicio de evaluación.
+7. Recolección de evidencia.
+8. Evaluación de controles.
+9. Presentación de resultados.
+10. Explicación de hallazgos.
+11. Consulta del Knowledge Center.
+12. Vista previa de recomendaciones.
+13. Exportación de informe.
+14. Verificación posterior cuando se ejecute manualmente una corrección.
+
+Todo debe tener estados funcionales.
+
+No simular la finalización de una auditoría cuando el colector no haya obtenido información real.
+
+---
+
+# 12. PLAN DE IMPLEMENTACIÓN POR FASES
+
+No intentes desarrollar el producto completo en una sola operación.
+
+Debes trabajar incrementalmente, con entregables, pruebas y validaciones.
+
+## PHASE 0 — REPOSITORY AUDIT
+
+- Inspeccionar el código existente.
+- Ejecutar pruebas.
+- Identificar funcionalidades.
+- Documentar riesgos.
+- Determinar qué conservar.
+- Preparar arquitectura y roadmap.
+
+Entregable: auditoría técnica.
+
+## PHASE 1 — FOUNDATION
+
+- Preparar estructura.
+- Definir contratos.
+- Definir modelo de datos.
+- Establecer motor de reglas.
+- Construir puente de escritorio.
+- Implementar detección de plataforma.
+- Preparar API local.
+- Configurar pruebas.
+
+Entregable: aplicación base funcional.
+
+## PHASE 2 — LINUX SECURITY ENGINE
+
+Comenzar por Ubuntu LTS y Debian.
+
+- Inventario.
+- Usuarios.
+- SSH.
+- Firewall.
+- Servicios.
+- Paquetes.
+- Actualizaciones.
+- Cifrado.
+- Reglas.
+- Evidencias.
+- Informes.
+
+Entregable: auditoría Linux reproducible.
+
+## PHASE 3 — WINDOWS ADAPTER
+
+Implementar y probar controles nativos de Windows.
+
+Conservar compatibilidad con las funciones existentes.
+
+Entregable: evaluación Windows funcional.
+
+## PHASE 4 — macOS ADAPTER
+
+Implementar las comprobaciones permitidas por las APIs del sistema.
+
+Documentar limitaciones de permisos y funcionalidades que requieran extensiones o autorizaciones especiales.
+
+Entregable: evaluación macOS funcional y delimitada.
+
+## PHASE 5 — UNIVERSAL SECURITY MODULES
+
+- Security Overview.
+- Asset Inventory.
+- Identity & Access.
+- Network Exposure.
+- Security Posture.
+- Risk Scoring.
+- Reports.
+
+Entregable: plataforma de auditoría integrada.
+
+## PHASE 6 — HARDENING STUDIO
+
+- Recomendaciones.
+- Vista previa.
+- Comandos manuales.
+- Riesgos.
+- Rollback.
+- Verificación.
+
+Entregable: recomendaciones explicables y verificables.
+
+## PHASE 7 — VULNERABILITY & THREAT INTELLIGENCE
+
+- NVD.
+- CISA KEV.
+- CVE.
+- CVSS.
+- CWE.
+- Correlación de inventario.
+- Fuentes y confianza.
+
+Entregable: enriquecimiento de vulnerabilidades.
+
+## PHASE 8 — SECURITY KNOWLEDGE CENTER
+
+- Arquitectura documental.
+- Referencias oficiales.
+- Artículos técnicos.
+- Código de referencia.
+- Guías para principiantes.
+- Guías intermedias.
+- Laboratorios seguros.
+- Buscador.
+
+Entregable: biblioteca de conocimiento funcional.
+
+## PHASE 9 — UX/UI POLISH
+
+- Diseño final.
+- Temas.
+- Accesibilidad.
+- Animaciones.
+- Estados.
+- Responsive desktop.
+- Optimización de experiencia.
+
+Entregable: experiencia de producto pulida.
+
+## PHASE 10 — QUALITY & RELEASE
+
+- Pruebas de regresión.
+- Pruebas de seguridad.
+- Builds para las plataformas soportadas.
+- Instaladores.
+- Firmado y notarización donde corresponda.
+- Documentación de instalación.
+- Versionado.
+- Release notes.
+- SBOM.
+
+Entregable: primera versión pública verificable.
+
+---
+
+# 13. MATRIZ DE CALIDAD Y PRUEBAS
+
+Cada módulo debe tener:
+
+- Unit tests.
+- Integration tests.
+- Contract tests.
+- Platform tests.
+- Security tests.
+- Error handling tests.
+
+Preparar CI mediante GitHub Actions con matrices para Windows, Linux y macOS.
+
+No declarar soporte si solo se ha probado en otro sistema.
+
+Diferenciar:
+
+- Pruebas unitarias con fixtures.
+- Pruebas de adaptadores simulados.
+- Pruebas de integración en sistema real.
+- Pruebas en máquinas virtuales.
+- Pruebas de instaladores.
+
+Validar cada plataforma en su runner o entorno nativo correspondiente.
+
+Probar instalaciones limpias, actualizaciones y desinstalaciones.
+
+Preparar:
+
+- Windows: instalador compatible.
+- macOS: app bundle y DMG, firmado y notarizado para distribución externa cuando corresponda.
+- Linux: AppImage y paquete Debian; RPM como objetivo posterior si existe capacidad de validación.
+
+No afirmar que un paquete está listo hasta haberlo probado.
+
+---
+
+# 14. EXPERIENCIA DE DESARROLLO Y DOCUMENTACIÓN
+
+Quiero que la aplicación sea mantenible por otros desarrolladores.
+
+Mantener:
+
+- README.md.
+- CONTRIBUTING.md.
+- SECURITY.md.
+- CHANGELOG.md.
+- LICENSE.
+- docs/ARCHITECTURE.md.
+- docs/THREAT_MODEL.md.
+- docs/PLATFORM_SUPPORT.md.
+- docs/INSTALLATION.md.
+- docs/DEVELOPMENT.md.
+- docs/TESTING.md.
+- docs/KNOWLEDGE_CENTER.md.
+
+Cada funcionalidad nueva debe tener documentación técnica.
+
+Cada regla debe tener pruebas.
+
+Cada integración debe tener un contrato definido.
+
+Cada limitación debe estar documentada.
+
+---
+
+# 15. CONDICIONES DE ACEPTACIÓN DEL PRODUCTO
+
+No consideres terminado el proyecto simplemente porque el frontend compile.
+
+Debe cumplir los siguientes objetivos:
+
+1. Aplicación de escritorio funcional.
+2. Motor de auditoría real.
+3. Adaptadores independientes por plataforma.
+4. Contrato común de resultados.
+5. Sin ejecución arbitraria de comandos.
+6. Auditoría de solo lectura.
+7. Evidencia rastreable.
+8. Puntuación explicable.
+9. Informes exportables.
+10. Knowledge Center funcional.
+11. Referencias oficiales verificables.
+12. Ejemplos de código con procedencia y licencia.
+13. Dos temas completos.
+14. Interfaz accesible.
+15. Pruebas automatizadas.
+16. Builds probados por plataforma.
+17. Documentación técnica.
+18. Limitaciones y cobertura transparentes.
+
+---
+
+# 16. INSTRUCCIONES DE TRABAJO PARA TI
+
+Quiero un proceso de ingeniería real.
+
+No generes todo el código de golpe.
+
+Primero inspecciona el proyecto y crea un diagnóstico.
+
+Después produce la arquitectura definitiva y el roadmap técnico.
+
+A continuación implementa las fases en orden, conservando lo que funciona.
+
+En cada fase debes:
+
+1. Explicar el objetivo.
+2. Identificar los archivos que se modificarán.
+3. Diseñar antes de implementar.
+4. Implementar el código funcional.
+5. Ejecutar pruebas.
+6. Corregir errores.
+7. Ejecutar build.
+8. Documentar resultados.
+9. Mostrar las funciones terminadas.
+10. Identificar pendientes y riesgos.
+
+No uses placeholders que simulen funcionalidades terminadas.
+
+No dejes botones sin acción.
+
+No inventes métricas.
+
+No afirmes que un adaptador está listo si solo devuelve datos de prueba.
+
+No ocultes errores con valores predeterminados.
+
+No destruyas funcionalidades actuales para simplificar el desarrollo.
+
+Si una decisión tecnológica presenta problemas, explica la alternativa, sus consecuencias y la razón del cambio.
+
+Si falta una dependencia o capacidad del entorno, documenta el bloqueo y continúa con el trabajo que sí pueda realizarse.
+
+Toma decisiones técnicas razonables sin pedir confirmación por cada detalle menor.
+
+Cuando existan riesgos de pérdida de datos, cambios de permisos, privilegios o modificación del sistema operativo, detente antes de ejecutar la acción.
+
+---
+
+# 17. PRIMERA INSTRUCCIÓN: COMIENZA AHORA
+
+Empieza exclusivamente con PHASE 0.
+
+Quiero que inspecciones el repositorio existente y produzcas:
+
+A. Diagnóstico del estado actual.
+
+B. Inventario de funcionalidades existentes.
+
+C. Matriz de compatibilidad Windows/Linux/macOS.
+
+D. Arquitectura multiplataforma definitiva.
+
+E. Estructura de carpetas propuesta, adaptada al proyecto real.
+
+F. Modelo de datos y contratos.
+
+G. Diseño de los adaptadores.
+
+H. Diseño de los módulos universales.
+
+I. Diseño del Security Knowledge Center.
+
+J. Sistema visual Neo Cyber.
+
+K. Roadmap de implementación por fases.
+
+L. Riesgos técnicos y medidas de mitigación.
+
+M. Criterios de aceptación.
+
+Después de finalizar el diagnóstico, comienza la implementación de PHASE 1, siempre preservando el código existente.
+
+El resultado que buscamos no es una demostración visual.
+
+Estamos construyendo un producto de Security Engineering multiplataforma, funcional, verificable, seguro y preparado para evolucionar hacia un ecosistema profesional de ciberseguridad.
+
+**BUILD WITH EVIDENCE. DESIGN WITH PURPOSE. ENGINEER FOR SECURITY.**
