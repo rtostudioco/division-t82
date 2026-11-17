@@ -70,125 +70,149 @@ export async function runScan(options: RunOptions = {}): Promise<RunScanResult> 
     },
   })
 
-  // 4) evaluate implemented rules
-  const rules: SecurityControl[] = rulesFor(platformInfo.platform, scope)
-  const scoreInputs: ScoreInput[] = []
-  const inventoryNotes: string[] = []
+  // P0 hardening: everything from here on is wrapped so an unexpected failure
+  // can never leave the job stuck in 'running' — the job is marked 'failed'
+  // with a persisted reason, then the error is rethrown to the API layer.
   const t0 = Date.now()
+  try {
+    // 4) evaluate implemented rules
+    const rules: SecurityControl[] = rulesFor(platformInfo.platform, scope)
+    const scoreInputs: ScoreInput[] = []
+    const inventoryNotes: string[] = []
 
-  for (const rule of rules) {
-    let evaluation
-    const ruleStart = Date.now()
-    try {
-      evaluation = rule.evaluate(bag)
-    } catch (e) {
-      evaluation = {
-        status: 'ERROR' as ControlStatus,
-        detail: `evaluator exception: ${String((e as Error).message).slice(0, 300)}`,
+    for (const rule of rules) {
+      let evaluation
+      const ruleStart = Date.now()
+      try {
+        evaluation = rule.evaluate(bag)
+      } catch (e) {
+        evaluation = {
+          status: 'ERROR' as ControlStatus,
+          detail: `evaluator exception: ${String((e as Error).message).slice(0, 300)}`,
+        }
       }
-    }
-    const durationMs = Date.now() - ruleStart
-    scoreInputs.push({
-      controlId: rule.id,
-      severity: rule.severity,
-      status: evaluation.status,
-      category: rule.category,
-    })
-
-    // persist evidence fragments (traceability)
-    let firstEvidenceId: string | null = null
-    if (evaluation.evidence && evaluation.evidence.length > 0) {
-      for (const frag of evaluation.evidence.slice(0, 6)) {
-        const ev = await db.evidence.create({
-          data: {
-            scanId: scan.id,
-            controlId: rule.id,
-            schemaVersion: 'vc.evidence/v1',
-            method: frag.method,
-            source: frag.source,
-            payloadJson: JSON.stringify(sanitizePayload(frag.payload)).slice(0, 200000),
-            confidence: frag.confidence,
-            privilegesRequired: frag.privilegesRequired ?? null,
-            redacted: frag.redacted ?? true,
-          },
-        })
-        if (!firstEvidenceId) firstEvidenceId = ev.id
-      }
-    }
-
-    await db.controlResult.create({
-      data: {
-        scanId: scan.id,
+      const durationMs = Date.now() - ruleStart
+      scoreInputs.push({
         controlId: rule.id,
-        controlVersion: rule.version,
-        controlName: JSON.stringify(rule.name),
-        category: rule.category,
         severity: rule.severity,
         status: evaluation.status,
-        reason: evaluation.reason ?? null,
-        detail: evaluation.detail ?? null,
-        explanation: JSON.stringify(rule.explanation),
-        limitations: rule.limitations ? JSON.stringify(rule.limitations) : null,
-        evidenceId: firstEvidenceId,
-        privilegesRequired: evaluation.evidence?.[0]?.privilegesRequired ?? null,
-        durationMs,
-      },
-    })
+        category: rule.category,
+      })
 
-    if (evaluation.status === 'FAIL' || evaluation.status === 'WARNING') {
-      await db.finding.create({
+      // persist evidence fragments (traceability)
+      let firstEvidenceId: string | null = null
+      if (evaluation.evidence && evaluation.evidence.length > 0) {
+        for (const frag of evaluation.evidence.slice(0, 6)) {
+          const ev = await db.evidence.create({
+            data: {
+              scanId: scan.id,
+              controlId: rule.id,
+              schemaVersion: 'vc.evidence/v1',
+              method: frag.method,
+              source: frag.source,
+              payloadJson: JSON.stringify(sanitizePayload(frag.payload)).slice(0, 200000),
+              confidence: frag.confidence,
+              privilegesRequired: frag.privilegesRequired ?? null,
+              redacted: frag.redacted ?? true,
+            },
+          })
+          if (!firstEvidenceId) firstEvidenceId = ev.id
+        }
+      }
+
+      await db.controlResult.create({
         data: {
           scanId: scan.id,
           controlId: rule.id,
+          controlVersion: rule.version,
           controlName: JSON.stringify(rule.name),
           category: rule.category,
           severity: rule.severity,
           status: evaluation.status,
-          detail: evaluation.detail ?? evaluation.reason ?? null,
+          reason: evaluation.reason ?? null,
+          detail: evaluation.detail ?? null,
+          explanation: JSON.stringify(rule.explanation),
+          limitations: rule.limitations ? JSON.stringify(rule.limitations) : null,
+          evidenceId: firstEvidenceId,
+          privilegesRequired: evaluation.evidence?.[0]?.privilegesRequired ?? null,
+          durationMs,
         },
       })
-      await db.remediationPreview.create({
+
+      if (evaluation.status === 'FAIL' || evaluation.status === 'WARNING') {
+        await db.finding.create({
+          data: {
+            scanId: scan.id,
+            controlId: rule.id,
+            controlName: JSON.stringify(rule.name),
+            category: rule.category,
+            severity: rule.severity,
+            status: evaluation.status,
+            detail: evaluation.detail ?? evaluation.reason ?? null,
+          },
+        })
+        await db.remediationPreview.create({
+          data: {
+            controlId: rule.id,
+            scanId: scan.id,
+            payloadJson: JSON.stringify(rule.remediation),
+            advisoryOnly: true,
+          },
+        })
+      }
+
+      if (evaluation.status === 'ERROR') {
+        inventoryNotes.push(`${rule.id}: ${evaluation.detail ?? 'error'}`)
+      }
+    }
+
+    // 5) scoring + inventory snapshot
+    const score = computeScore(scoreInputs)
+    const inventory = buildInventory(bag, inventoryNotes)
+
+    await db.scanJob.update({
+      where: { id: scan.id },
+      data: {
+        status: 'completed',
+        finishedAt: new Date(),
+        score: score.overall,
+        coverage: score.coverage,
+        countsJson: JSON.stringify(score.counts),
+        severityJson: JSON.stringify(score.severityCounts),
+        inventoryJson: JSON.stringify(inventory),
+        durationMs: Date.now() - t0,
+      },
+    })
+
+    await db.auditHistory.create({
+      data: {
+        action: 'scan.run',
+        target: scan.id,
+        detail: `score=${score.overall ?? 'n/a'} coverage=${score.coverage}% controls=${scoreInputs.length}`,
+      },
+    })
+
+    return { scanId: scan.id, score: score.overall, coverage: score.coverage }
+  } catch (e) {
+    const reason = String((e as Error).message ?? e).slice(0, 400)
+    try {
+      await db.scanJob.update({
+        where: { id: scan.id },
         data: {
-          controlId: rule.id,
-          scanId: scan.id,
-          payloadJson: JSON.stringify(rule.remediation),
-          advisoryOnly: true,
+          status: 'failed',
+          finishedAt: new Date(),
+          errorReason: reason,
+          durationMs: Date.now() - t0,
         },
       })
+      await db.auditHistory.create({
+        data: { action: 'scan.fail', target: scan.id, detail: `scan interrupted: ${reason}` },
+      })
+    } catch {
+      // the DB itself may be the failing component — nothing more we can do
     }
-
-    if (evaluation.status === 'ERROR') {
-      inventoryNotes.push(`${rule.id}: ${evaluation.detail ?? 'error'}`)
-    }
+    throw e
   }
-
-  // 5) scoring + inventory snapshot
-  const score = computeScore(scoreInputs)
-  const inventory = buildInventory(bag, inventoryNotes)
-
-  await db.scanJob.update({
-    where: { id: scan.id },
-    data: {
-      status: 'completed',
-      finishedAt: new Date(),
-      score: score.overall,
-      coverage: score.coverage,
-      countsJson: JSON.stringify(score.counts),
-      severityJson: JSON.stringify(score.severityCounts),
-      inventoryJson: JSON.stringify(inventory),
-      durationMs: Date.now() - t0,
-    },
-  })
-
-  await db.auditHistory.create({
-    data: {
-      action: 'scan.run',
-      target: scan.id,
-      detail: `score=${score.overall ?? 'n/a'} coverage=${score.coverage}% controls=${scoreInputs.length}`,
-    },
-  })
-
-  return { scanId: scan.id, score: score.overall, coverage: score.coverage }
 }
 
 function sanitizePayload(payload: unknown): unknown {

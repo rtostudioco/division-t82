@@ -3,11 +3,14 @@
 // recent-CVE ingestion. Both sources report success/failure honestly.
 import { NextResponse } from 'next/server'
 import { ingestVulnerabilities } from '@/lib/vulnintel/ingest'
+import { guardMutation } from '@/lib/api-guard'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120
 
-export async function POST() {
+export async function POST(request: Request) {
+  const denied = guardMutation(request)
+  if (denied) return denied
   try {
     const result = await ingestVulnerabilities()
     return NextResponse.json(result)

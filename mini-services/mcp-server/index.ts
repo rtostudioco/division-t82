@@ -197,7 +197,79 @@ function buildServer(): McpServer {
 // ─── Stateless streamable HTTP transport ─────────────────────────────────────
 
 const app = express()
-app.use(express.json({ limit: '1mb' }))
+
+// ─── Local-first transport hardening (P0) ────────────────────────────────
+// The MCP server is a loopback-only service for local clients (Claude
+// Desktop, Cursor, local scripts). It must never accept traffic presenting
+// a non-local Host header (DNS-rebinding shape) or a cross-origin Origin
+// header, and abusive request rates are rejected.
+
+function parseHostname(h?: string): string {
+  const v = (h ?? '').trim()
+  if (!v) return ''
+  if (v.startsWith('[')) {
+    const end = v.indexOf(']')
+    return end === -1 ? v.toLowerCase() : v.slice(1, end).toLowerCase()
+  }
+  return v.split(':')[0].trim().toLowerCase()
+}
+
+function isLoopback(hostname: string): boolean {
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname.endsWith('.localhost')
+}
+
+function trustedHosts(): string[] {
+  return (process.env.MCP_TRUSTED_HOSTS ?? '')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean)
+}
+
+// 1) Host allowlist: loopback only (or explicitly trusted via MCP_TRUSTED_HOSTS).
+app.use((req, res, next) => {
+  const hostName = parseHostname(req.headers.host)
+  if (!isLoopback(hostName) && !trustedHosts().includes(hostName)) {
+    res.status(403).json({ error: 't82-mcp: non-local Host header rejected — loopback-only service' })
+    return
+  }
+  // 2) Origin validation when present (MCP streamable-HTTP spec recommendation)
+  const origin = req.headers.origin
+  if (origin) {
+    try {
+      const o = new URL(origin)
+      if (!isLoopback(o.hostname) && o.hostname !== hostName) {
+        res.status(403).json({ error: 't82-mcp: cross-origin request rejected' })
+        return
+      }
+    } catch {
+      res.status(403).json({ error: 't82-mcp: malformed Origin header' })
+      return
+    }
+  }
+  next()
+})
+
+// 3) Best-effort rate limit: fixed window, 60 requests/minute — protects the
+//    read-only tools against abusive loops (upstream calls carry timeouts).
+const RATE_WINDOW_MS = 60_000
+const RATE_MAX = 60
+let rateWindowStart = Date.now()
+let rateCount = 0
+app.use((_req, res, next) => {
+  const now = Date.now()
+  if (now - rateWindowStart > RATE_WINDOW_MS) {
+    rateWindowStart = now
+    rateCount = 0
+  }
+  rateCount++
+  if (rateCount > RATE_MAX) {
+    res.status(429).json({ error: `t82-mcp: rate limit exceeded (${RATE_MAX} req/min)` })
+    return
+  }
+  next()
+})
+
+app.use(express.json({ limit: '256kb' }))
 
 app.post('/mcp', async (req, res) => {
   try {
@@ -246,6 +318,6 @@ app.get('/health', async (_req, res) => {
   })
 })
 
-app.listen(PORT, () => {
-  console.log(`[t82-mcp] listening on http://localhost:${PORT}/mcp (stateless streamable HTTP) → upstream ${UPSTREAM}`)
+app.listen(PORT, '127.0.0.1', () => {
+  console.log(`[t82-mcp] listening on http://127.0.0.1:${PORT}/mcp (stateless streamable HTTP, loopback-only) → upstream ${UPSTREAM}`)
 })

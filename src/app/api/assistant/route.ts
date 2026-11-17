@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import ZAI from 'z-ai-web-dev-sdk'
 import { db } from '@/lib/db'
+import { guardMutation } from '@/lib/api-guard'
 
 export const dynamic = 'force-dynamic'
 
@@ -224,6 +225,8 @@ async function callLLM(sys: string, messages: ChatMessage[]): Promise<Completion
 // ─── POST handler ────────────────────────────────────────────────────────────
 
 export async function POST(request: Request) {
+  const denied = guardMutation(request)
+  if (denied) return denied
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local'
   if (rateLimited(ip)) {
     return NextResponse.json(

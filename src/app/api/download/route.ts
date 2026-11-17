@@ -5,6 +5,7 @@
 import { NextResponse } from 'next/server'
 import { execFile } from 'child_process'
 import { listArtifacts } from '@/lib/downloads'
+import { guardMutation } from '@/lib/api-guard'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
@@ -17,7 +18,9 @@ export async function GET() {
   return NextResponse.json({ artifacts, busy })
 }
 
-export async function POST() {
+export async function POST(request: Request) {
+  const denied = guardMutation(request)
+  if (denied) return denied
   if (busy) {
     return NextResponse.json(
       { error: 'generación ya en curso — espera unos segundos' },

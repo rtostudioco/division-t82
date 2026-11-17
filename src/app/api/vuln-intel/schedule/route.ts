@@ -3,6 +3,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { db } from '@/lib/db'
+import { guardMutation } from '@/lib/api-guard'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,6 +36,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const denied = guardMutation(request)
+  if (denied) return denied
   let body: unknown
   try {
     body = await request.json()

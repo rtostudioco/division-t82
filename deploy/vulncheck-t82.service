@@ -10,7 +10,8 @@ User=t82
 WorkingDirectory=/opt/vulncheck-t82
 Environment=NODE_ENV=production
 Environment=PORT=3000
-Environment=HOSTNAME=0.0.0.0
+# local-first: la web solo escucha en loopback — no accesible desde la red.
+Environment=HOSTNAME=127.0.0.1
 Environment=DATABASE_URL=file:/var/lib/vulncheck-t82/vulncheck.db
 ExecStartPre=/usr/bin/prisma db push --skip-generate --accept-data-loss
 ExecStart=/usr/bin/node server.js

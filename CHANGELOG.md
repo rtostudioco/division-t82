@@ -5,6 +5,25 @@ Versionado: SemVer (`MAJOR.MINOR.PATCH`).
 
 ## [Sin publicar]
 
+### Security · P0 — hardening de red local-first
+- **Loopback por defecto en toda la plataforma** — la web ya no escucha en
+  `0.0.0.0` en ninguna instalación: servicio systemd (`install.sh`,
+  `vulncheck-t82.service`), runtime empaquetado (`start.sh`), LaunchAgent
+  macOS (plist) y docker-compose (puerto del host publicado solo en
+  `127.0.0.1`). Windows ya lo estaba (NSIS + arranque portable).
+- **Guard de mutaciones en la API local** — toda petición POST/PATCH/DELETE
+  exige el header `x-t82-client: t82-web` y misma origen cuando hay `Origin`;
+  sin `Origin` solo se aceptan `Host` de loopback (o los listados en
+  `T82_TRUSTED_HOSTS`). Bloquea CSRF clásico y DNS-rebinding contra la app
+  local. Lecturas (GET) no se bloquean.
+- **Servidor MCP endurecido** — bind explícito a `127.0.0.1`, rechazo de
+  `Host` no local y de `Origin` cruzados (recomendación del transporte
+  streamable-HTTP de MCP), rate limit de 60 req/min y cuerpo máximo 256 KB.
+- **Evaluaciones resilientes** — una sola evaluación activa por instancia
+  (409 si hay otra en curso); los fallos inesperados marcan el job como
+  `failed` con motivo persistido (`errorReason`) y los scans interrumpidos
+  por un reinicio se recuperan al arrancar el servidor.
+
 ### Added · licencia
 - **Licencia MIT** — DIVISION T82 es open source: archivo `LICENSE` en la raíz,
   badge y sección Licencia en el README y campo `license` en package.json.

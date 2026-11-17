@@ -2,7 +2,10 @@
 #
 #   docker compose -f deploy/docker-compose.yml up -d
 #
-# La web queda en http://<host>:3000 con datos persistentes en /data.
+# La web queda en http://localhost:3000 con datos persistentes en /data.
+# El puerto del HOST se publica SOLO en loopback (postura local-first); si
+# quieres servirlo en la red, cambia el bind a "3000:3000" bajo tu propio
+# criterio y activa T82_TRUSTED_HOSTS en la app.
 
 services:
   vulncheck:
@@ -13,7 +16,7 @@ services:
     container_name: vulncheck-t82
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     environment:
       DATABASE_URL: file:/data/vulncheck.db
       NODE_ENV: production

@@ -110,7 +110,8 @@ User=${SYS_USER}
 WorkingDirectory=${APP_DIR}
 Environment=NODE_ENV=production
 Environment=PORT=${PORT}
-Environment=HOSTNAME=0.0.0.0
+# local-first: la web solo escucha en loopback — no accesible desde la red.
+Environment=HOSTNAME=127.0.0.1
 Environment=DATABASE_URL=file:${DATA_DIR}/vulncheck.db
 Environment=NEXT_TELEMETRY_DISABLED=1
 ExecStart=${node_bin} .next/standalone/server.js

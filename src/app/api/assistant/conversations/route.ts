@@ -3,6 +3,7 @@
 // DELETE: wipe the whole history (audited).
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { guardMutation } from '@/lib/api-guard'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,7 +39,9 @@ export async function GET(request: Request) {
   )
 }
 
-export async function DELETE() {
+export async function DELETE(request: Request) {
+  const denied = guardMutation(request)
+  if (denied) return denied
   await db.assistantConversation.deleteMany({})
   await db.auditHistory.create({
     data: { action: 'assistant.delete', detail: 'assistant conversation history wiped' },

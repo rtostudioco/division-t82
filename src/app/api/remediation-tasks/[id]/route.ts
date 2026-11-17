@@ -3,6 +3,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { db } from '@/lib/db'
+import { guardMutation } from '@/lib/api-guard'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,6 +14,8 @@ const PatchSchema = z.object({
 })
 
 export async function PATCH(request: Request, ctx: RouteContext) {
+  const denied = guardMutation(request)
+  if (denied) return denied
   const { id } = await ctx.params
 
   let body: unknown
@@ -39,7 +42,9 @@ export async function PATCH(request: Request, ctx: RouteContext) {
   }
 }
 
-export async function DELETE(_request: Request, ctx: RouteContext) {
+export async function DELETE(request: Request, ctx: RouteContext) {
+  const denied = guardMutation(request)
+  if (denied) return denied
   const { id } = await ctx.params
   try {
     const task = await db.remediationTask.delete({ where: { id } })

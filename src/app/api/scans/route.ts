@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { runScan } from '@/lib/engine/runner'
 import { CONTROL_CATEGORIES } from '@/lib/engine/types'
+import { guardMutation } from '@/lib/api-guard'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -28,6 +29,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const denied = guardMutation(request)
+  if (denied) return denied
   let scope: string[] = []
   try {
     const body = await request.json()
@@ -36,6 +39,15 @@ export async function POST(request: Request) {
     // empty body => full scope
   }
   const validScope = scope.filter((s) => (CONTROL_CATEGORIES as readonly string[]).includes(s))
+  // single active scan per local instance — concurrent runs distort timings
+  // and could interleave DB writes; refuse honestly instead.
+  const active = await db.scanJob.findFirst({ where: { status: 'running' } })
+  if (active) {
+    return NextResponse.json(
+      { error: `ya hay una evaluación en curso (${active.id}) — espera a que termine` },
+      { status: 409 },
+    )
+  }
   try {
     const result = await runScan({ scope: validScope })
     return NextResponse.json(result)

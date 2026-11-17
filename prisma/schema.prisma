@@ -41,6 +41,7 @@ model ScanJob {
   countsJson     String? // {pass,fail,warning,notApplicable,notAssessed,error}
   severityJson   String? // {critical,high,medium,low,info}
   inventoryJson  String? // sanitized system inventory snapshot
+  errorReason    String? // why the scan failed or was interrupted (P0 hardening)
   durationMs     Int?
   startedAt      DateTime @default(now())
   finishedAt     DateTime?

@@ -2,6 +2,7 @@
 // GET: full conversation for restore. DELETE: remove one conversation (audited).
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { guardMutation } from '@/lib/api-guard'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,7 +34,9 @@ export async function GET(_request: Request, ctx: RouteContext) {
   })
 }
 
-export async function DELETE(_request: Request, ctx: RouteContext) {
+export async function DELETE(request: Request, ctx: RouteContext) {
+  const denied = guardMutation(request)
+  if (denied) return denied
   const { id } = await ctx.params
   try {
     await db.assistantConversation.delete({ where: { id } })
