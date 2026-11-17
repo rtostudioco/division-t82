@@ -109,6 +109,8 @@ Rutas completas en [`deploy/README.md`](deploy/README.md).
 | 📡 | [**Contrato de API**](docs/API_CONTRACT.md) | Endpoints, esquemas y semántica de errores |
 | 🛠 | [**How-To**](docs/HOW-TO.md) | Guías paso a paso: primera auditoría, informes, MCP, backups |
 | 🌐 | [**Wiki**](docs/WIKI.md) | Índice temático + glosario (CVE, KEV, cobertura, MCP…) |
+| 🎯 | [**Modelo de amenazas**](docs/THREAT_MODEL.md) | Actores, límites de confianza y mitigaciones de la postura local-first |
+| 📊 | [**Estado de auditoría**](docs/AUDIT_STATUS.md) | Qué evalúa cada control, con qué evidencia y sus límites (honestidad del motor) |
 | 🗺 | [**Roadmap de implementación**](docs/IMPLEMENTATION_ROADMAP.md) | Fases y estado del catálogo diseñado |
 | 🧩 | [**Matriz de compatibilidad**](docs/PLATFORM_COMPATIBILITY_MATRIX.md) | Linux / Windows / macOS — qué evalúa cada plataforma hoy |
 | 📦 | [**Guía de despliegue**](deploy/README.md) | Docker, systemd, .deb, instaladores nativos de los 3 SO |
@@ -174,7 +176,13 @@ Herramientas read-only: `t82_latest_posture` · `t82_control_search` ·
 - **Advisory-only**: la IA y el MCP aconsejan; nada se ejecuta sin ti.
 - **Sin telemetría**: los datos viven en un SQLite local. Las únicas llamadas
   externas son las fuentes OSV/NVD/KEV **cuando tú las activas**.
+- **Privacidad por minimización**: el asistente de IA nunca envía tu hostname
+  ni tu usuario al proveedor del modelo — solo el resumen agregado y la
+  plataforma genérica (SO/kernel/arquitectura).
 - **Honestidad de cobertura**: lo no evaluado se lista — jamás se infla la nota.
+- **Transparencia de seguridad**: modelo de amenazas y estado real del motor
+  documentados ([THREAT_MODEL.md](docs/THREAT_MODEL.md) ·
+  [AUDIT_STATUS.md](docs/AUDIT_STATUS.md)).
 
 ## 📄 Autoría
 

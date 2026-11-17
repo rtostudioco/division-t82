@@ -5,6 +5,55 @@ Versionado: SemVer (`MAJOR.MINOR.PATCH`).
 
 ## [Sin publicar]
 
+### Security · P0/P1 — segunda tanda de hardening (motor, instaladores, IA)
+- **Bind loopback en los `start.sh` generados** — `make-release.sh` y
+  `build-standalone.sh` seguían empaquetando un arranque con `HOSTNAME=0.0.0.0`
+  por defecto; ahora `127.0.0.1` (el ejemplo `docker run` del Dockerfile
+  documenta la publicación solo en loopback).
+- **Drop-ins SSH ya evaluados (precisión del motor)** — la allowlist de lectura
+  exigía que los ficheros de `/etc/ssh/sshd_config.d`, `/etc/sudoers.d` y
+  `/etc/apparmor.d` empezaran por punto; los nombres reales
+  (`10-custom.conf`, `usr.bin.firefox`) se rechazaban en silencio y las
+  reglas SSH evaluaban sin ellos. Ahora se admiten (frontera cerrada:
+  un solo segmento, sin `..`, sin sufijos `~`/`#`).
+- **safeStat restringido** — antes aceptaba `stat` de CUALQUIER ruta bajo
+  `/etc/`; ahora obedece la misma allowlist que las lecturas.
+- **Firewall por estado real** — nueva sonda runtime (`ufw status`,
+  `nft list ruleset`, ambas read-only): si responde, el veredicto es del
+  kernel; si requiere root y falla, se degrada a la configuración con
+  `WARNING` explícito.
+- **ClamAV por estado real** — además del binario, se comprueba si
+  `clamav-daemon` está entre los servicios systemd activos y el detalle del
+  PASS lo comunica (on-access activo vs solo on-demand).
+- **LUKS por estado real** — `lsblk TYPE=crypt` prueba volúmenes mapeados
+  AHORA; `/etc/crypttab` queda como fallback documentado.
+- **`safeExec` se mantiene cerrado** — solo se añadieron las sondas de
+  firewall read-only a la allowlist existente.
+- **SHA256SUMS completos (C7)** — el release final ahora incluye el hash del
+  `setup.exe` (y de los .dmg/.pkg si se activan macOS): el checksum que
+  verificas cubre TODOS los artefactos publicados.
+- **`prisma db push` sin pérdida silenciosa (C3)** — se retira
+  `--accept-data-loss` de `install.sh`, `entrypoint.sh` (Docker), unit systemd
+  y `start.sh` generados; los fallos de esquema abortan con error claro
+  (NSIS hace `Abort`, Docker sale 1, Tauri muestra el error y no abre la
+  webview). Los datos nunca se pierden en silencio.
+- **Tauri con CSP estricta (C5)** — `csp: null` sustituido por una política
+  cerrada a loopback (`default-src`/`connect-src` a `http://127.0.0.1:*`,
+  `object-src 'none'`, `frame-ancestors 'none'`).
+- **Privacidad del Asistente T82 (D1)** — el contexto que viaja al proveedor
+  LLM ya NO incluye hostname ni nombre de usuario: solo plataforma genérica
+  (SO/kernel/arquitectura), score, estados y top CVEs.
+- **Rate limit honesto (D2)** — el límite del asistente usa un cubo global por
+  proceso en lugar de una clave `X-Forwarded-For` falsificable.
+
+### Docs
+- **`docs/THREAT_MODEL.md`** — actores de amenaza (CSRF/DNS-rebinding, malware
+  local, exfiltración, suministro), límites de confianza y mitigaciones.
+- **`docs/AUDIT_STATUS.md`** — qué evalúa cada control, con qué evidencia y
+  qué limita su veredicto; principio «estado real sobre configuración».
+- README: sección de privacidad por minimización + enlaces a la nueva
+  documentación de seguridad.
+
 ### Security · P0 — hardening de red local-first
 - **Loopback por defecto en toda la plataforma** — la web ya no escucha en
   `0.0.0.0` en ninguna instalación: servicio systemd (`install.sh`,
